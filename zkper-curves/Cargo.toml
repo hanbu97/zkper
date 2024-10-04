@@ -8,3 +8,4 @@ zkper-base.workspace = true
 
 lazy_static.workspace = true
 rug = { workspace = true, features = ["integer", "num-traits"] }
+rand_core.workspace = true

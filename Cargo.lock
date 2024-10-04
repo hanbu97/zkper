@@ -292,6 +292,7 @@ name = "zkper-curves"
 version = "0.1.0"
 dependencies = [
  "lazy_static",
+ "rand_core",
  "rug",
  "zkper-base",
 ]

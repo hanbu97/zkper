@@ -1,3 +1,4 @@
+use rand_core::RngCore;
 use rug::integer::BorrowInteger;
 use rug::integer::MiniInteger;
 use rug::Integer;
@@ -111,5 +112,43 @@ impl MontgomeryBackend {
             inv = inv.wrapping_mul(modulus_64);
         }
         inv.wrapping_neg().into()
+    }
+
+    /// Sample a random value in montgomery form
+    pub fn sample<R: RngCore>(&self, rng: &mut R) -> Integer {
+        let bytes_needed = self.limbs * 16;
+        let mut bytes = vec![0u8; bytes_needed];
+        rng.fill_bytes(&mut bytes);
+
+        let order = if self.limbs == 4 {
+            rug::integer::Order::Lsf
+        } else {
+            rug::integer::Order::Msf
+        };
+        let d0 = Integer::from_digits(&bytes[..bytes_needed / 2], order);
+        let d1 = Integer::from_digits(&bytes[bytes_needed / 2..], order);
+
+        let out = self.montgomery_multiply(&d0, &self.r2) + self.montgomery_multiply(&d1, &self.r3);
+
+        out % &self.modulus
+    }
+
+    /// sample a raw (non-Montgomery) value
+    pub fn sample_raw<R: RngCore>(&self, rng: &mut R) -> Integer {
+        let bytes_needed = self.limbs * 16;
+        let mut bytes = vec![0u8; bytes_needed];
+        rng.fill_bytes(&mut bytes);
+
+        let order = if self.limbs == 4 {
+            rug::integer::Order::Lsf
+        } else {
+            rug::integer::Order::Msf
+        };
+        let d0 = Integer::from_digits(&bytes[..bytes_needed / 2], order);
+        let d1 = Integer::from_digits(&bytes[bytes_needed / 2..], order);
+
+        let out = self.montgomery_multiply(&d0, &self.r) + self.montgomery_multiply(&d1, &self.r2);
+
+        out % &self.modulus
     }
 }

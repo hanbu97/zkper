@@ -13,9 +13,10 @@ lazy_static = "1.5.0"
 
 rand = "0.8.5"
 rand_chacha = "0.3.1"
+rand_core = "0.6.4"
+
 rug = { version = "1.26.1" }
 
 [dependencies]
-
 rug = { workspace = true, features = ["integer", "num-traits"] }
 lazy_static.workspace = true
