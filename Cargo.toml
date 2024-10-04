@@ -1,0 +1,21 @@
+[package]
+name = "zkper"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+members = [".", "zkper-base", "zkper-curves"]
+
+[workspace.dependencies]
+zkper-base = { path = "zkper-base" }
+
+lazy_static = "1.5.0"
+
+rand = "0.8.5"
+rand_chacha = "0.3.1"
+rug = { version = "1.26.1" }
+
+[dependencies]
+
+rug = { workspace = true, features = ["integer", "num-traits"] }
+lazy_static.workspace = true
