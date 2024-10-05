@@ -1,19 +1,9 @@
-use rand_core::RngCore;
-use rug::Integer;
+use crate::backends::montgomery::MontgomeryBackend;
 
-use crate::{backends::montgomery::MontgomeryBackend, traits::field::FieldTrait};
+pub mod fields;
 
-pub struct Bls12_381ScalarField(pub Integer);
-
-impl FieldTrait for Bls12_381ScalarField {
-    fn random<R: RngCore>(rng: &mut R) -> Integer {
-        let mut bytes = [0u8; 32];
-        rng.fill_bytes(&mut bytes);
-        Integer::from_digits(&bytes, rug::integer::Order::Lsf)
-    }
-}
-
-pub struct Bls12_381BaseField(pub Integer);
+pub use fields::base::Bls12_381BaseField;
+pub use fields::scalar::Bls12_381ScalarField;
 
 lazy_static::lazy_static! {
     pub static ref BLS12_381_SCALAR: MontgomeryBackend = MontgomeryBackend::from_str_radix(
@@ -27,7 +17,20 @@ lazy_static::lazy_static! {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rand::Rng;
+    use tests::fields::scalar::Bls12_381ScalarField;
     use zkper_base::rand::ZkperRng;
+
+    #[test]
+    fn test_rng_gen() {
+        let mut rng = ZkperRng::new_test();
+        let scalar: Bls12_381ScalarField = rng.gen();
+        println!("scalar: {}", scalar.0.to_string_radix(16));
+
+        let mut rng = ZkperRng::new_test();
+        let base: Bls12_381BaseField = rng.gen();
+        println!("base: {}", base.0.to_string_radix(16));
+    }
 
     #[test]
     fn test_sample() {

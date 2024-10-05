@@ -66,20 +66,48 @@ impl MontgomeryBackend {
         (result * &self.r_inv) % &self.modulus
     }
 
+    pub fn modulus_ref(&self) -> &Integer {
+        &self.modulus
+    }
+
     pub fn modulus(&self) -> Integer {
         self.modulus.clone()
+    }
+
+    pub fn r_ref(&self) -> &Integer {
+        &self.r
     }
 
     pub fn r(&self) -> Integer {
         self.r.clone()
     }
 
+    pub fn r_inv_ref(&self) -> &Integer {
+        &self.r_inv
+    }
+
     pub fn r_inv(&self) -> Integer {
         self.r_inv.clone()
     }
 
+    pub fn r2_ref(&self) -> &Integer {
+        &self.r2
+    }
+
     pub fn r2(&self) -> Integer {
         self.r2.clone()
+    }
+
+    pub fn r3_ref(&self) -> &Integer {
+        &self.r3
+    }
+
+    pub fn r3(&self) -> Integer {
+        self.r3.clone()
+    }
+
+    pub fn inv_ref(&self) -> &Integer {
+        &self.inv
     }
 
     pub fn inv(&self) -> Integer {

@@ -1,0 +1,10 @@
+[package]
+name = "zkper-groth16"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+zkper-base.workspace = true
+zkper-curves.workspace = true
+
+rand.workspace = true

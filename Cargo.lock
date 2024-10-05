@@ -292,7 +292,21 @@ name = "zkper-curves"
 version = "0.1.0"
 dependencies = [
  "lazy_static",
+ "rand",
  "rand_core",
  "rug",
  "zkper-base",
 ]
+
+[[package]]
+name = "zkper-groth16"
+version = "0.1.0"
+dependencies = [
+ "rand",
+ "zkper-base",
+ "zkper-curves",
+]
+
+[[package]]
+name = "zkper-snarks"
+version = "0.1.0"
