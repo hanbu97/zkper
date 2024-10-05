@@ -1,6 +1,6 @@
 use crate::{
     backends::montgomery::{INTEGER_THREE, INTEGER_TWO},
-    curves::bls12_381::MILLER_LOOP_CONSTANT,
+    curves::bls12_381::{BLS12_381_BASE, MILLER_LOOP_CONSTANT},
 };
 
 use self::g1_affine::G1Affine;
@@ -25,6 +25,16 @@ impl<'a> From<&'a G1Affine> for G1Projective {
             } else {
                 Bls12_381BaseField::one()
             },
+        }
+    }
+}
+
+impl From<(rug::Integer, rug::Integer, rug::Integer)> for G1Projective {
+    fn from(p: (rug::Integer, rug::Integer, rug::Integer)) -> G1Projective {
+        G1Projective {
+            x: p.0,
+            y: p.1,
+            z: p.2,
         }
     }
 }
@@ -82,58 +92,36 @@ impl G1Projective {
     }
 
     pub fn double(&self) -> Self {
-        if self.is_identity() {
-            return self.clone();
-        }
-
-        let modulus = Bls12_381BaseField::modulus();
-
-        let xx = Bls12_381BaseField::square(self.x.clone());
-        let yy = Bls12_381BaseField::square(self.y.clone());
-        let zz = Bls12_381BaseField::square(self.z.clone());
-        let xy = Bls12_381BaseField::mul(self.x.clone(), &self.y);
-
-        let t = xx * INTEGER_THREE % modulus;
-
-        let x3 = {
-            let xy2 = (xy.clone() * INTEGER_TWO) % modulus;
-            ((&t * &t) - xy2.clone() - xy2) % modulus
-        };
-
-        let y3 = {
-            let yy2 = (&yy * &yy).complete() % modulus;
-            let yy8 = (yy2 * 8u32) % modulus;
-            ((&t * (xy - &x3)) - yy8) % modulus
-        };
-
-        let z3 = {
-            let y_plus_z = (&self.y + &self.z).complete() % modulus;
-            ((&y_plus_z * &y_plus_z) - yy - &zz) % modulus
-        };
-
-        G1Projective {
-            x: x3,
-            y: y3,
-            z: z3,
-        }
-
-        // let xy2 = (self.x.clone() * &self.y) * 2;
-        // let xyyy = self.x.clone() * &yy * 3;
-
-        // let a: Integer = yy * 3;
-        // let b: Integer = xyyy * 2;
-        // let c = xx * 3;
-
-        // let y = &a * (b.clone() - c);
-        // let x: Integer = &a.pow(2) - b * 2;
-        // let z = xy2 * &self.z * 2;
-
-        // G1Projective {
-        //     x: x % Bls12_381BaseField::modulus(),
-        //     y: y % Bls12_381BaseField::modulus(),
-        //     z: z % Bls12_381BaseField::modulus(),
-        // }
+        BLS12_381_BASE
+            .double_standard(&self.x, &self.y, &self.z)
+            .into()
     }
+
+    // /// Frobenius endomorphism of the point
+    // /// This operation is crucial in the context of the Miller loop for BLS12-381
+    // pub fn frobenius_map(&self) -> G1Projective {
+    //     let mut result = G1Projective::identity();
+    //     let mut temp = self.clone();
+
+    //     // Skip the first bit as it's always 1 for BLS12-381
+    //     let mut x = MILLER_LOOP_CONSTANT >> 1;
+
+    //     while x != 0 {
+    //         temp = temp.double();
+
+    //         if x % 2 == 1 {
+    //             result = result.add(&temp);
+    //         }
+    //         x >>= 1;
+    //     }
+
+    //     // Apply the sign of x
+    //     if MILLER_LOOP_CONSTANT_IS_NEG {
+    //         result.neg()
+    //     } else {
+    //         result
+    //     }
+    // }
 
     pub fn random<R: RngCore>(rng: &mut R) -> Self {
         // loop {
@@ -217,26 +205,34 @@ mod tests {
                 z: Bls12_381BaseField::one(),
             };
 
-            // let s = INTEGER_FOUR * point.x.clone() * point.y.clone().square()
-            //     % Bls12_381BaseField::modulus();
-            // let m = (INTEGER_THREE * point.x.clone().square()
-            //     + INTEGER_FOUR * point.z.clone().square().square())
-            //     % Bls12_381BaseField::modulus();
-            // let t = (m.clone().square() - INTEGER_TWO * s.clone()) % Bls12_381BaseField::modulus();
+            println!("point: {:#}", point);
 
-            // let x_prime = t.clone();
-            // let y_prime = (m * (s - t) - INTEGER_EIGHT * point.y.clone().square().square())
-            //     % Bls12_381BaseField::modulus();
-            // let z_prime =
-            //     (INTEGER_TWO * point.y.clone() * point.z.clone()) % Bls12_381BaseField::modulus();
+            println!();
 
-            // let (x_prime, y_prime, z_prime) = double_g1_jacobian(&point);
+            let x_mont = BLS12_381_BASE.to_montgomery(&point.x);
+            let y_mont = BLS12_381_BASE.to_montgomery(&point.y);
+            let z_mont = BLS12_381_BASE.to_montgomery(&point.z);
 
-            // println!();
+            let point_mont = G1Projective {
+                x: x_mont,
+                y: y_mont,
+                z: z_mont,
+            };
 
-            // println!("x_prime: {:#}", x_prime.to_string_radix(16));
-            // println!("y_prime: {:#}", y_prime.to_string_radix(16));
-            // println!("z_prime: {:#}", z_prime.to_string_radix(16));
+            let double_mont =
+                BLS12_381_BASE.double_mont(&point_mont.x, &point_mont.y, &point_mont.z);
+
+            let x_prime = BLS12_381_BASE.from_montgomery(&double_mont.0);
+            let y_prime = BLS12_381_BASE.from_montgomery(&double_mont.1);
+            let z_prime = BLS12_381_BASE.from_montgomery(&double_mont.2);
+
+            let point_prime = G1Projective {
+                x: x_prime,
+                y: y_prime,
+                z: z_prime,
+            };
+
+            println!("point_prime: {:#}", point_prime);
 
             println!();
 
@@ -246,68 +242,6 @@ mod tests {
             println!("x_prime: {:#}", x_prime.to_string_radix(16));
             println!("y_prime: {:#}", y_prime.to_string_radix(16));
             println!("z_prime: {:#}", z_prime.to_string_radix(16));
-
-            println!();
-
-            let x_cub = BLS12_381_BASE.cubic(point.x.clone());
-            let z_cub = BLS12_381_BASE.cubic(point.z.clone());
-
-            println!();
-            println!();
-
-            ////////////////////////?//////////////////////////////////
-
-            let modulus = Bls12_381BaseField::modulus();
-            let b = Bls12_381BaseField::mul(point.y.clone(), &point.z) * INTEGER_TWO % modulus;
-            let z = BLS12_381_BASE.cubic(b);
-
-            println!("z: {:#}", z.to_string_radix(16));
-
-            ////////////////////////?//////////////////////////////////
-
-            // let modulus = Bls12_381BaseField::modulus();
-            // let a =
-            //     Bls12_381BaseField::mul(Bls12_381BaseField::square(point.x.clone()), INTEGER_THREE)
-            //         + Bls12_381BaseField::mul(
-            //             Bls12_381BaseField::square(point.z.clone()),
-            //             INTEGER_FOUR,
-            //         );
-            // let b = Bls12_381BaseField::mul(point.y.clone(), &point.z) * INTEGER_TWO % modulus;
-
-            // let y2 = Bls12_381BaseField::square(point.y.clone());
-            // let c = Bls12_381BaseField::mul(y2.clone(), &point.x) * INTEGER_FOUR;
-
-            // let d = Bls12_381BaseField::square(y2) * INTEGER_EIGHT % modulus;
-
-            // let c8 = Bls12_381BaseField::mul(c.clone(), &INTEGER_EIGHT);
-            // let x = Bls12_381BaseField::sub(Bls12_381BaseField::square(a.clone()), &c8);
-            // let x = Bls12_381BaseField::mul(x, &b);
-
-            // let c4 = Bls12_381BaseField::mul(c, &INTEGER_FOUR);
-            // let a2 = Bls12_381BaseField::square(a.clone());
-            // let c4_sub_a2 = Bls12_381BaseField::sub(c4, &a2);
-            // let y = Bls12_381BaseField::mul(a, &c4_sub_a2);
-
-            // let d2 = Bls12_381BaseField::mul(d.clone(), &INTEGER_TWO);
-            // let y = Bls12_381BaseField::sub(y, &d2);
-
-            // let z = BLS12_381_BASE.cubic(b);
-
-            // println!("x: {:#}", x.to_string_radix(16));
-            // println!("y: {:#}", y.to_string_radix(16));
-            // println!("z: {:#}", z.to_string_radix(16));
-
-            // println!();
-            // let mul_result = Bls12_381BaseField::mul(x.0.clone(), &Bls12_381BaseField::one());
-            // println!("mul_result: {}", mul_result.to_string_radix(16));
-
-            // Convert to projective coordinates and clear cofactor
-            // let proj_point = point.to_curve().final_exponentiation();
-
-            // // Ensure the generated point is not the point at infinity
-            // if !proj_point.is_identity() {
-            //     return proj_point;
-            // }
         }
     }
 }

@@ -38,8 +38,8 @@ impl FieldTrait for Bls12_381ScalarField {
     fn to_mont(&self) -> Integer {
         BLS12_381_SCALAR.to_montgomery(&self.0)
     }
-    fn from_mont(&self) -> Integer {
-        BLS12_381_SCALAR.from_montgomery(&self.0)
+    fn from_mont(input: &Integer) -> Integer {
+        BLS12_381_SCALAR.from_montgomery(input)
     }
 }
 

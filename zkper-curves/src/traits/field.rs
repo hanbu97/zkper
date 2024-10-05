@@ -22,7 +22,7 @@ pub trait FieldTrait {
     fn to_mont(&self) -> Integer;
 
     /// from montgomery form
-    fn from_mont(&self) -> Integer;
+    fn from_mont(input: &Integer) -> Integer;
 
     /// montgomery_multiply
     fn mont_mul(a: &Integer, b: &Integer) -> Integer;

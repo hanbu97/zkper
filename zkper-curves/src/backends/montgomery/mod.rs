@@ -39,6 +39,17 @@ pub const INTEGER_EIGHT: &'static Integer = {
     BorrowInteger::const_deref(&BORROW)
 };
 
+pub const INTEGER_TWELVE: &'static Integer = {
+    const MINI: MiniInteger = MiniInteger::const_from_u8(12);
+    const BORROW: BorrowInteger = MINI.borrow();
+    BorrowInteger::const_deref(&BORROW)
+};
+
+#[test]
+fn test_const_integer() {
+    println!("INTEGER_TWELVE: {}", INTEGER_TWELVE);
+}
+
 pub struct MontgomeryBackend {
     /// The modulus of the field.
     pub modulus: Integer,
@@ -97,12 +108,6 @@ impl MontgomeryBackend {
 
     pub fn from_montgomery(&self, a: &Integer) -> Integer {
         self.mont_mul(a, Integer::ONE)
-    }
-
-    /// montgomery multiplication
-    pub fn mont_mul(&self, a: &Integer, b: &Integer) -> Integer {
-        let result = (a.clone() * b) % &self.modulus;
-        (result * &self.r_inv) % &self.modulus
     }
 
     pub fn modulus_ref(&self) -> &Integer {
@@ -293,6 +298,30 @@ impl MontgomeryBackend {
         self.new_element(a - b)
     }
 
+    // mont Operations
+
+    /// montgomery multiplication
+    pub fn mont_mul(&self, a: &Integer, b: &Integer) -> Integer {
+        let result = (a.clone() * b) % &self.modulus;
+        (result * &self.r_inv) % &self.modulus
+    }
+
+    pub fn mont_pow(&self, base: &Integer, exponent: &Integer) -> Integer {
+        let mut result = self.r();
+        let mut base = base.clone();
+        let mut exp = exponent.clone();
+        while !exp.is_zero() {
+            if exp.is_odd() {
+                result = self.mont_mul(&result, &base);
+            }
+            base = self.mont_mul(&base, &base);
+            exp >>= 1;
+        }
+        result
+    }
+
+    /// point operations    
+
     /// Doubles a point (X, Y, Z) in standard projective coordinates.
     ///
     /// # Arguments
@@ -304,37 +333,128 @@ impl MontgomeryBackend {
     /// # Returns
     ///
     /// A tuple `(X', Y', Z')` representing the doubled point in standard projective coordinates.
+    ///
+    /// This implementation assumes the curve parameter a = 0, which is true for both BLS12-381 and BLS12-377.
+    /// These curves are defined by the equation y^2 = x^3 + b, where:
+    /// - For BLS12-381: b = 4
+    /// - For BLS12-377: b = 1
+    ///
+    /// The doubling formula used here is optimized for a = 0 curves.
     pub fn double_standard(
         &self,
         x: &Integer,
         y: &Integer,
         z: &Integer,
     ) -> (Integer, Integer, Integer) {
-        // S = 4 * X * Y^2
-        let y_sq = self.mul(y.clone(), y);
-        let s = self.mul(self.mul(x.clone(), &y_sq), INTEGER_FOUR);
-
-        // M = 3 * X^2
+        // W = 3 * X^2 + a * Z^2, where a is the curve parameter (0 for BLS12-381)
         let x_sq = self.mul(x.clone(), x);
-        let m = self.mul(x_sq, &INTEGER_THREE);
+        let w = self.mul(x_sq.clone(), &INTEGER_THREE);
 
-        // X' = M^2 - 2 * S
-        let m_sq = self.mul(m.clone(), &m);
-        let two_s = self.mul(s.clone(), INTEGER_TWO);
-        let x_prime = self.sub(m_sq, &two_s);
+        // S = Y * Z
+        let s = self.mul(y.clone(), z);
 
-        // Y' = M * (S - X') - 8 * Y^4
-        let s_minus_xp = self.sub(s, &x_prime);
-        let m_s_xp = self.mul(m, &s_minus_xp);
-        let y_four = self.mul(y_sq.clone(), &y_sq);
-        let eight_y_four = self.mul(y_four, INTEGER_EIGHT);
-        let y_prime = self.sub(m_s_xp, &eight_y_four);
+        // B = X * Y * S
+        let xy = self.mul(x.clone(), y);
+        let b = self.mul(xy.clone(), &s);
 
-        // Z' = (2 * Y * Z) ^ 3
-        let yz = self.mul(y.clone(), z);
-        let z_prime = self.mul(yz, &INTEGER_TWO);
-        let z_prime = self.cubic(z_prime.clone());
+        // h = W^2 - 8 * B
+        let w_sq = self.mul(w.clone(), &w);
+        let eight_b = self.mul(b.clone(), &INTEGER_EIGHT);
+        let h = self.sub(w_sq, &eight_b);
+
+        // X' = 2 * h * S
+        let two_h = self.mul(h.clone(), &INTEGER_TWO);
+        let x_prime = self.mul(two_h, &s);
+
+        // Y' = W * (4 * B - h) - 8 * Y^2 * S^2
+        let four_b = self.mul(b, &INTEGER_FOUR);
+        let four_b_minus_h = self.sub(four_b, &h);
+        let w_term = self.mul(w, &four_b_minus_h);
+        let y_sq = self.mul(y.clone(), y);
+        let s_sq = self.mul(s.clone(), &s);
+        let y_term = self.mul(y_sq, &s_sq);
+        let eight_y_term = self.mul(y_term, &INTEGER_EIGHT);
+        let y_prime = self.sub(w_term, &eight_y_term);
+
+        // Z' = 8 * S^3
+        let s_cube = self.mul(s_sq, &s);
+        let z_prime = self.mul(s_cube, &INTEGER_EIGHT);
 
         (x_prime, y_prime, z_prime)
+    }
+
+    /// Doubles a point (X, Y, Z) using Montgomery arithmetic, following Algorithm 9.
+    ///
+    /// # Arguments
+    ///
+    /// * `x` - The X-coordinate of the point in Montgomery form.
+    /// * `y` - The Y-coordinate of the point in Montgomery form.
+    /// * `z` - The Z-coordinate of the point in Montgomery form.
+    ///
+    /// # Returns
+    ///
+    /// A tuple `(X', Y', Z')` representing the doubled point in Montgomery form.
+    ///
+    /// ref: https://eprint.iacr.org/2015/1060.pdf Algorithm 9
+    pub fn double_mont(
+        &self,
+        x: &Integer,
+        y: &Integer,
+        z: &Integer,
+    ) -> (Integer, Integer, Integer) {
+        // 1. t0 ← Y · Y
+        let mut t0 = self.mont_mul(y, y);
+
+        // 2-3. Z3 ← t0 + t0, Z3 ← Z3 + Z3
+        let mut z3 = self.add(t0.clone(), &t0);
+        z3 = self.add(z3.clone(), &z3);
+
+        // 4. Z3 ← Z3 + Z3
+        z3 = self.add(z3.clone(), &z3);
+
+        // 5. t1 ← Y · Z
+        let t1 = self.mont_mul(y, z);
+
+        // 6. t2 ← Z · Z
+        let mut t2 = self.mont_mul(z, z);
+
+        // 7. t2 ← b3 · t2 (b3 is 12(3*4) for bls12_381 · b, where b is the curve parameter)
+        let b3 = self.to_montgomery(&INTEGER_TWELVE);
+        t2 = self.mont_mul(&t2, &b3);
+
+        // 8. X3 ← t2 · Z3
+        let mut x3 = self.mont_mul(&t2, &z3);
+
+        // 9. Y3 ← t0 + t2
+        let mut y3 = self.add(t0.clone(), &t2);
+
+        // 10. Z3 ← t1 · Z3
+        z3 = self.mont_mul(&t1, &z3);
+
+        // 11. t1 ← t2 + t2
+        let mut t1 = self.add(t2.clone(), &t2);
+
+        // 12. t2 ← t1 + t2
+        t2 = self.add(t1.clone(), &t2);
+
+        // 13. t0 ← t0 - t2
+        t0 = self.sub(t0, &t2);
+
+        // 14. Y3 ← t0 · Y3
+        y3 = self.mont_mul(&t0, &y3);
+
+        // 15. Y3 ← X3 + Y3
+        y3 = self.add(x3.clone(), &y3);
+
+        // 16. t1 ← X · Y
+        t1 = self.mont_mul(x, y);
+
+        // 17. X3 ← t0 · t1
+        x3 = self.mont_mul(&t0, &t1);
+
+        // 18. X3 ← X3 + X3
+        x3 = self.add(x3.clone(), &x3);
+
+        (x3, y3, z3)
     }
 }
