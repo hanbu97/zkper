@@ -6,6 +6,10 @@ pub mod fields;
 pub use fields::base::Bls12_381BaseField;
 pub use fields::scalar::Bls12_381ScalarField;
 
+/// This is equal to the frobenius trace of the BLS12 381 curve minus one or seed value z.
+pub const MILLER_LOOP_CONSTANT: u64 = 0xd201_0000_0001_0000;
+pub const MILLER_LOOP_CONSTANT_IS_NEG: bool = true;
+
 lazy_static::lazy_static! {
     pub static ref BLS12_381_SCALAR: MontgomeryBackend = MontgomeryBackend::from_str_radix(
         "52435875175126190479447740508185965837690552500527637822603658699938581184513", 10, 4

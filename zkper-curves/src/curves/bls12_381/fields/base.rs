@@ -1,3 +1,5 @@
+use std::net::Incoming;
+
 use crate::curves::bls12_381::BLS12_381_BASE;
 
 use super::*;
@@ -14,6 +16,32 @@ impl From<Integer> for Bls12_381BaseField {
 impl Display for Bls12_381BaseField {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0.to_string_radix(16))
+    }
+}
+
+impl Bls12_381BaseField {
+    pub fn square(input: Integer) -> Integer {
+        BLS12_381_BASE.square(input)
+    }
+
+    pub fn cubic(input: Integer) -> Integer {
+        BLS12_381_BASE.cubic(input)
+    }
+
+    pub fn sqrt(input: Integer) -> Option<Integer> {
+        BLS12_381_BASE.sqrt(input)
+    }
+
+    pub fn neg(input: Integer) -> Integer {
+        BLS12_381_BASE.neg(input)
+    }
+
+    pub fn invert(input: Integer) -> Option<Integer> {
+        BLS12_381_BASE.invert(input)
+    }
+
+    pub fn mul(input: Integer, other: &Integer) -> Integer {
+        BLS12_381_BASE.mul(input, other)
     }
 }
 

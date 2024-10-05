@@ -210,6 +210,11 @@ impl MontgomeryBackend {
         a.clone() * a % &self.modulus
     }
 
+    /// cubic
+    pub fn cubic(&self, a: Integer) -> Integer {
+        (a.clone() * &a % &self.modulus) * &a % &self.modulus
+    }
+
     /// Exponentiates this element by a given exponent.
     pub fn pow(&self, a: Integer, exp: &Integer) -> Integer {
         a.pow_mod(exp, &self.modulus).unwrap()
@@ -234,5 +239,18 @@ impl MontgomeryBackend {
             }
             None => panic!("This sqrt implementation only works for p ≡ 3 (mod 4)"),
         }
+    }
+
+    /// Computes the multiplicative inverse of this element, if it exists.
+    pub fn invert(&self, input: Integer) -> Option<Integer> {
+        input
+            .invert(&self.modulus)
+            .map(|v| self.new_element(v))
+            .ok()
+    }
+
+    /// Multiplies this element by another.
+    pub fn mul(&self, input: Integer, other: &Integer) -> Integer {
+        input * other % &self.modulus
     }
 }

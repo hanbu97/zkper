@@ -28,6 +28,6 @@ pub trait FieldTrait {
 
     /// one
     fn one() -> Integer {
-        Self::r().clone()
+        Integer::from(1)
     }
 }
