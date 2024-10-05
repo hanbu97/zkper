@@ -457,4 +457,126 @@ impl MontgomeryBackend {
 
         (x3, y3, z3)
     }
+
+    /// Adds two points (X1, Y1, Z1) and (X2, Y2, Z2) using Montgomery arithmetic, following Algorithm 7.
+    ///
+    /// # Arguments
+    ///
+    /// * `x1`, `y1`, `z1` - The coordinates of the first point in Montgomery form.
+    /// * `x2`, `y2`, `z2` - The coordinates of the second point in Montgomery form.
+    ///
+    /// # Returns
+    ///
+    /// A tuple `(X3, Y3, Z3)` representing the sum of the two points in Montgomery form.
+    /// ref: https://eprint.iacr.org/2015/1060.pdf Algorithm 7
+    pub fn add_mont(
+        &self,
+        x1: &Integer,
+        y1: &Integer,
+        z1: &Integer,
+        x2: &Integer,
+        y2: &Integer,
+        z2: &Integer,
+    ) -> (Integer, Integer, Integer) {
+        // 1. t0 ← X1 · X2
+        let mut t0 = self.mont_mul(x1, x2);
+
+        // 2. t1 ← Y1 · Y2
+        let mut t1 = self.mont_mul(y1, y2);
+
+        // 3. t2 ← Z1 · Z2
+        let mut t2 = self.mont_mul(z1, z2);
+
+        // 4. t3 ← X1 + Y1
+        let mut t3 = self.add(x1.clone(), y1);
+
+        // 5. t4 ← X2 + Y2
+        let mut t4 = self.add(x2.clone(), y2);
+
+        // 6. t3 ← t3 · t4
+        t3 = self.mont_mul(&t3, &t4);
+
+        // 7. t4 ← t0 + t1
+        t4 = self.add(t0.clone(), &t1);
+
+        // 8. t3 ← t3 - t4
+        t3 = self.sub(t3, &t4);
+
+        // 9. t4 ← Y1 + Z1
+        t4 = self.add(y1.clone(), z1);
+
+        // 10. X3 ← Y2 + Z2
+        let mut x3 = self.add(y2.clone(), z2);
+
+        // 11. t4 ← t4 · X3
+        t4 = self.mont_mul(&t4, &x3);
+
+        // 12. X3 ← t1 + t2
+        x3 = self.add(t1.clone(), &t2);
+
+        // 13. t4 ← t4 - X3
+        t4 = self.sub(t4, &x3);
+
+        // 14. X3 ← X1 + Z1
+        x3 = self.add(x1.clone(), z1);
+
+        // 15. Y3 ← X2 + Z2
+        let mut y3 = self.add(x2.clone(), z2);
+
+        // 16. X3 ← X3 · Y3
+        x3 = self.mont_mul(&x3, &y3);
+
+        // 17. Y3 ← t0 + t2
+        y3 = self.add(t0.clone(), &t2);
+
+        // 18. Y3 ← X3 - Y3
+        y3 = self.sub(x3, &y3);
+
+        // 19. X3 ← t0 + t0
+        x3 = self.add(t0.clone(), &t0);
+
+        // 20. t0 ← X3 + t0
+        t0 = self.add(x3, &t0);
+
+        // 21. t2 ← b3 · t2
+        t2 = self.mont_mul(&INTEGER_TWELVE, &t2);
+
+        // 22. Z3 ← t1 + t2
+        let mut z3 = self.add(t1.clone(), &t2);
+
+        // 23. t1 ← t1 - t2
+        t1 = self.sub(t1, &t2);
+
+        // 24. Y3 ← b3 · Y3
+        y3 = self.mont_mul(&INTEGER_TWELVE, &y3);
+
+        // 25. X3 ← t4 · Y3
+        x3 = self.mont_mul(&t4, &y3);
+
+        // 26. t2 ← t3 · t1
+        t2 = self.mont_mul(&t3, &t1);
+
+        // 27. X3 ← t2 - X3
+        x3 = self.sub(t2, &x3);
+
+        // 28. Y3 ← Y3 · t0
+        y3 = self.mont_mul(&y3, &t0);
+
+        // 29. t1 ← t1 · Z3
+        t1 = self.mont_mul(&t1, &z3);
+
+        // 30. Y3 ← t1 + Y3
+        y3 = self.add(t1, &y3);
+
+        // 31. t0 ← t0 · t3
+        t0 = self.mont_mul(&t0, &t3);
+
+        // 32. Z3 ← Z3 · t4
+        z3 = self.mont_mul(&z3, &t4);
+
+        // 33. Z3 ← Z3 + t0
+        z3 = self.add(z3, &t0);
+
+        (x3, y3, z3)
+    }
 }
