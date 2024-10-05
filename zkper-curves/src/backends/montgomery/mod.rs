@@ -5,6 +5,16 @@ use rug::Integer;
 use std::ops::Mul;
 use std::ops::Rem;
 
+pub trait MontgomeryExt {
+    fn from_montgomery_backend(&self, backend: &MontgomeryBackend) -> Integer;
+}
+
+impl MontgomeryExt for Integer {
+    fn from_montgomery_backend(&self, backend: &MontgomeryBackend) -> Integer {
+        backend.from_montgomery(self)
+    }
+}
+
 pub const INTEGER_TWO: &'static Integer = {
     const MINI: MiniInteger = MiniInteger::const_from_u8(2);
     const BORROW: BorrowInteger = MINI.borrow();
@@ -82,14 +92,15 @@ impl MontgomeryBackend {
     }
 
     pub fn to_montgomery(&self, a: &Integer) -> Integer {
-        self.montgomery_multiply(a, &self.r2)
+        self.mont_mul(a, &self.r2)
     }
 
     pub fn from_montgomery(&self, a: &Integer) -> Integer {
-        self.montgomery_multiply(a, Integer::ONE)
+        self.mont_mul(a, Integer::ONE)
     }
 
-    pub fn montgomery_multiply(&self, a: &Integer, b: &Integer) -> Integer {
+    /// montgomery multiplication
+    pub fn mont_mul(&self, a: &Integer, b: &Integer) -> Integer {
         let result = (a.clone() * b) % &self.modulus;
         (result * &self.r_inv) % &self.modulus
     }
@@ -184,7 +195,7 @@ impl MontgomeryBackend {
         let d0 = Integer::from_digits(&bytes[..bytes_needed / 2], order);
         let d1 = Integer::from_digits(&bytes[bytes_needed / 2..], order);
 
-        let out = self.montgomery_multiply(&d0, &self.r2) + self.montgomery_multiply(&d1, &self.r3);
+        let out = self.mont_mul(&d0, &self.r2) + self.mont_mul(&d1, &self.r3);
 
         out % &self.modulus
     }
@@ -203,7 +214,7 @@ impl MontgomeryBackend {
         let d0 = Integer::from_digits(&bytes[..bytes_needed / 2], order);
         let d1 = Integer::from_digits(&bytes[bytes_needed / 2..], order);
 
-        let out = self.montgomery_multiply(&d0, &self.r) + self.montgomery_multiply(&d1, &self.r2);
+        let out = self.mont_mul(&d0, &self.r) + self.mont_mul(&d1, &self.r2);
 
         out % &self.modulus
     }

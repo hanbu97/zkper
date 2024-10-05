@@ -69,8 +69,14 @@ impl FieldTrait for Bls12_381BaseField {
     fn limbs() -> usize {
         BLS12_381_BASE.limbs()
     }
-    fn montgomery_multiply(a: &Integer, b: &Integer) -> Integer {
-        BLS12_381_BASE.montgomery_multiply(a, b)
+    fn mont_mul(a: &Integer, b: &Integer) -> Integer {
+        BLS12_381_BASE.mont_mul(a, b)
+    }
+    fn to_mont(&self) -> Integer {
+        BLS12_381_BASE.to_montgomery(&self.0)
+    }
+    fn from_mont(&self) -> Integer {
+        BLS12_381_BASE.from_montgomery(&self.0)
     }
 }
 
@@ -86,8 +92,8 @@ impl Distribution<Bls12_381BaseField> for Standard {
         let d0 = Integer::from_digits(&bytes[..48], rug::integer::Order::Msf);
         let d1 = Integer::from_digits(&bytes[48..], rug::integer::Order::Msf);
 
-        let out = Bls12_381BaseField::montgomery_multiply(&d0, r_ref)
-            + Bls12_381BaseField::montgomery_multiply(&d1, r2_ref);
+        let out =
+            Bls12_381BaseField::mont_mul(&d0, r_ref) + Bls12_381BaseField::mont_mul(&d1, r2_ref);
 
         (out % modulus).into()
     }

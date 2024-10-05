@@ -18,8 +18,14 @@ pub trait FieldTrait {
     /// Returns the number of limbs.
     fn limbs() -> usize;
 
+    /// to montgomery form
+    fn to_mont(&self) -> Integer;
+
+    /// from montgomery form
+    fn from_mont(&self) -> Integer;
+
     /// montgomery_multiply
-    fn montgomery_multiply(a: &Integer, b: &Integer) -> Integer;
+    fn mont_mul(a: &Integer, b: &Integer) -> Integer;
 
     /// zero
     fn zero() -> Integer {

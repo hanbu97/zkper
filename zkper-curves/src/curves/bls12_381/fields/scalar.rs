@@ -32,9 +32,14 @@ impl FieldTrait for Bls12_381ScalarField {
     fn limbs() -> usize {
         BLS12_381_SCALAR.limbs()
     }
-
-    fn montgomery_multiply(a: &Integer, b: &Integer) -> Integer {
-        BLS12_381_SCALAR.montgomery_multiply(a, b)
+    fn mont_mul(a: &Integer, b: &Integer) -> Integer {
+        BLS12_381_SCALAR.mont_mul(a, b)
+    }
+    fn to_mont(&self) -> Integer {
+        BLS12_381_SCALAR.to_montgomery(&self.0)
+    }
+    fn from_mont(&self) -> Integer {
+        BLS12_381_SCALAR.from_montgomery(&self.0)
     }
 }
 
@@ -50,8 +55,8 @@ impl Distribution<Bls12_381ScalarField> for Standard {
         let d0 = Integer::from_digits(&bytes[..32], rug::integer::Order::Lsf);
         let d1 = Integer::from_digits(&bytes[32..], rug::integer::Order::Lsf);
 
-        let out = Bls12_381ScalarField::montgomery_multiply(&d0, r_ref)
-            + Bls12_381ScalarField::montgomery_multiply(&d1, r2_ref);
+        let out = Bls12_381ScalarField::mont_mul(&d0, r_ref)
+            + Bls12_381ScalarField::mont_mul(&d1, r2_ref);
 
         (out % modulus).into()
     }
