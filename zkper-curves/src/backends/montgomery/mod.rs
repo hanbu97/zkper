@@ -27,6 +27,9 @@ pub struct MontgomeryBackend {
     /// INV = -MODULUS^{-1} mod 2^64
     pub inv: Integer,
 
+    /// (modulus + 1) / 4 if modulus % 4 == 3
+    pub modulus_plus_one_div_four: Option<Integer>,
+
     /// limbs
     pub limbs: usize,
 }
@@ -42,6 +45,12 @@ impl MontgomeryBackend {
         let inv = Self::compute_inv(&modulus);
         let r_inv = r.clone().invert(&modulus).expect("R should be invertible");
 
+        let modulus_plus_one_div_four = if modulus.clone() % 4 != 3 {
+            panic!("This sqrt implementation only works for p ≡ 3 (mod 4)");
+        } else {
+            Some((modulus.clone() + 1) / 4)
+        };
+
         Self {
             modulus,
             r,
@@ -49,6 +58,7 @@ impl MontgomeryBackend {
             r3,
             inv,
             r_inv,
+            modulus_plus_one_div_four,
             limbs: limbs as usize,
         }
     }
@@ -178,5 +188,51 @@ impl MontgomeryBackend {
         let out = self.montgomery_multiply(&d0, &self.r) + self.montgomery_multiply(&d1, &self.r2);
 
         out % &self.modulus
+    }
+
+    // Operations
+
+    /// new element
+    pub fn new_element(&self, value: Integer) -> Integer {
+        // value % &self.modulus
+
+        let modulus = &self.modulus;
+        let normalized = value.clone() % modulus;
+        if normalized < 0 {
+            normalized + modulus
+        } else {
+            normalized
+        }
+    }
+
+    /// Squares this element.
+    pub fn square(&self, a: Integer) -> Integer {
+        a.clone() * a % &self.modulus
+    }
+
+    /// Exponentiates this element by a given exponent.
+    pub fn pow(&self, a: Integer, exp: &Integer) -> Integer {
+        a.pow_mod(exp, &self.modulus).unwrap()
+    }
+
+    /// Negates this element.
+    pub fn neg(&self, input: Integer) -> Integer {
+        self.new_element(-input)
+    }
+
+    /// Attempts to compute the square root of this element.
+    /// Shanks if p ≡ 3 (mod 4)
+    pub fn sqrt(&self, input: Integer) -> Option<Integer> {
+        match &self.modulus_plus_one_div_four {
+            Some(exp) => {
+                let sqrt = self.pow(input.clone(), exp);
+                if self.square(sqrt.clone()) == input {
+                    Some(self.new_element(sqrt))
+                } else {
+                    None
+                }
+            }
+            None => panic!("This sqrt implementation only works for p ≡ 3 (mod 4)"),
+        }
     }
 }

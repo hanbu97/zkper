@@ -1,5 +1,6 @@
 use crate::backends::montgomery::MontgomeryBackend;
 
+pub mod curves;
 pub mod fields;
 
 pub use fields::base::Bls12_381BaseField;
@@ -18,8 +19,29 @@ lazy_static::lazy_static! {
 mod tests {
     use super::*;
     use rand::Rng;
+    use rug::Integer;
     use tests::fields::scalar::Bls12_381ScalarField;
     use zkper_base::rand::ZkperRng;
+
+    #[test]
+    fn test_sqrt_neg_square() {
+        let four = Integer::from(4);
+
+        let a_sqrt = BLS12_381_BASE.sqrt(four).unwrap();
+        println!("a_sqrt: {:?}", a_sqrt.to_string_radix(16));
+
+        let a_sqrt_square = BLS12_381_BASE.square(a_sqrt.clone());
+        println!("a_sqrt_square: {:?}", a_sqrt_square.to_string_radix(16));
+
+        let a_sqrt_neg = BLS12_381_BASE.neg(a_sqrt);
+        println!("a_sqrt_neg: {:?}", a_sqrt_neg.to_string_radix(16));
+
+        let a_sqrt_neg_square = BLS12_381_BASE.square(a_sqrt_neg);
+        println!(
+            "a_sqrt_neg_square: {:?}",
+            a_sqrt_neg_square.to_string_radix(16)
+        );
+    }
 
     #[test]
     fn test_rng_gen() {

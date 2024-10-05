@@ -1,6 +1,7 @@
 use super::*;
 use crate::curves::bls12_381::BLS12_381_SCALAR;
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Bls12_381ScalarField(pub Integer);
 
 impl From<Integer> for Bls12_381ScalarField {

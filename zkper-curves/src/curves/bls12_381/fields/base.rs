@@ -2,6 +2,7 @@ use crate::curves::bls12_381::BLS12_381_BASE;
 
 use super::*;
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Bls12_381BaseField(pub Integer);
 
 impl From<Integer> for Bls12_381BaseField {

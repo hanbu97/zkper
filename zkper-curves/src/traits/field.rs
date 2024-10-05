@@ -20,4 +20,14 @@ pub trait FieldTrait {
 
     /// montgomery_multiply
     fn montgomery_multiply(a: &Integer, b: &Integer) -> Integer;
+
+    /// zero
+    fn zero() -> Integer {
+        Integer::from(0)
+    }
+
+    /// one
+    fn one() -> Integer {
+        Self::r().clone()
+    }
 }
