@@ -43,6 +43,14 @@ impl Bls12_381BaseField {
     pub fn mul(input: Integer, other: &Integer) -> Integer {
         BLS12_381_BASE.mul(input, other)
     }
+
+    pub fn add(input: Integer, other: &Integer) -> Integer {
+        BLS12_381_BASE.add(input, other)
+    }
+
+    pub fn sub(input: Integer, other: &Integer) -> Integer {
+        BLS12_381_BASE.sub(input, other)
+    }
 }
 
 impl FieldTrait for Bls12_381BaseField {

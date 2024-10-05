@@ -11,6 +11,24 @@ pub const INTEGER_TWO: &'static Integer = {
     BorrowInteger::const_deref(&BORROW)
 };
 
+pub const INTEGER_THREE: &'static Integer = {
+    const MINI: MiniInteger = MiniInteger::const_from_u8(3);
+    const BORROW: BorrowInteger = MINI.borrow();
+    BorrowInteger::const_deref(&BORROW)
+};
+
+pub const INTEGER_FOUR: &'static Integer = {
+    const MINI: MiniInteger = MiniInteger::const_from_u8(4);
+    const BORROW: BorrowInteger = MINI.borrow();
+    BorrowInteger::const_deref(&BORROW)
+};
+
+pub const INTEGER_EIGHT: &'static Integer = {
+    const MINI: MiniInteger = MiniInteger::const_from_u8(8);
+    const BORROW: BorrowInteger = MINI.borrow();
+    BorrowInteger::const_deref(&BORROW)
+};
+
 pub struct MontgomeryBackend {
     /// The modulus of the field.
     pub modulus: Integer,
@@ -46,7 +64,7 @@ impl MontgomeryBackend {
         let r_inv = r.clone().invert(&modulus).expect("R should be invertible");
 
         let modulus_plus_one_div_four = if modulus.clone() % 4 != 3 {
-            panic!("This sqrt implementation only works for p ≡ 3 (mod 4)");
+            None
         } else {
             Some((modulus.clone() + 1) / 4)
         };
@@ -252,5 +270,15 @@ impl MontgomeryBackend {
     /// Multiplies this element by another.
     pub fn mul(&self, input: Integer, other: &Integer) -> Integer {
         input * other % &self.modulus
+    }
+
+    /// add two elements
+    pub fn add(&self, a: Integer, b: &Integer) -> Integer {
+        (a + b) % &self.modulus
+    }
+
+    /// sub two elements
+    pub fn sub(&self, a: Integer, b: &Integer) -> Integer {
+        self.new_element(a - b)
     }
 }
