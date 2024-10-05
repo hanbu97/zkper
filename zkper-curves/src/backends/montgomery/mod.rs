@@ -292,4 +292,49 @@ impl MontgomeryBackend {
     pub fn sub(&self, a: Integer, b: &Integer) -> Integer {
         self.new_element(a - b)
     }
+
+    /// Doubles a point (X, Y, Z) in standard projective coordinates.
+    ///
+    /// # Arguments
+    ///
+    /// * `x` - The X-coordinate of the point.
+    /// * `y` - The Y-coordinate of the point.
+    /// * `z` - The Z-coordinate of the point.
+    ///
+    /// # Returns
+    ///
+    /// A tuple `(X', Y', Z')` representing the doubled point in standard projective coordinates.
+    pub fn double_standard(
+        &self,
+        x: &Integer,
+        y: &Integer,
+        z: &Integer,
+    ) -> (Integer, Integer, Integer) {
+        // S = 4 * X * Y^2
+        let y_sq = self.mul(y.clone(), y);
+        let s = self.mul(self.mul(x.clone(), &y_sq), INTEGER_FOUR);
+
+        // M = 3 * X^2
+        let x_sq = self.mul(x.clone(), x);
+        let m = self.mul(x_sq, &INTEGER_THREE);
+
+        // X' = M^2 - 2 * S
+        let m_sq = self.mul(m.clone(), &m);
+        let two_s = self.mul(s.clone(), INTEGER_TWO);
+        let x_prime = self.sub(m_sq, &two_s);
+
+        // Y' = M * (S - X') - 8 * Y^4
+        let s_minus_xp = self.sub(s, &x_prime);
+        let m_s_xp = self.mul(m, &s_minus_xp);
+        let y_four = self.mul(y_sq.clone(), &y_sq);
+        let eight_y_four = self.mul(y_four, INTEGER_EIGHT);
+        let y_prime = self.sub(m_s_xp, &eight_y_four);
+
+        // Z' = (2 * Y * Z) ^ 3
+        let yz = self.mul(y.clone(), z);
+        let z_prime = self.mul(yz, &INTEGER_TWO);
+        let z_prime = self.cubic(z_prime.clone());
+
+        (x_prime, y_prime, z_prime)
+    }
 }

@@ -240,41 +240,64 @@ mod tests {
 
             println!();
 
-            let modulus = Bls12_381BaseField::modulus();
+            let (x_prime, y_prime, z_prime) =
+                BLS12_381_BASE.double_standard(&point.x, &point.y, &point.z);
 
-            let a =
-                Bls12_381BaseField::mul(Bls12_381BaseField::square(point.x.clone()), INTEGER_THREE)
-                    + Bls12_381BaseField::mul(
-                        Bls12_381BaseField::square(point.z.clone()),
-                        INTEGER_FOUR,
-                    );
-
-            let b = Bls12_381BaseField::mul(point.y.clone(), &point.z) * INTEGER_TWO % modulus;
-
-            let y2 = Bls12_381BaseField::square(point.y.clone());
-            let c = Bls12_381BaseField::mul(y2.clone(), &point.x) * INTEGER_FOUR;
-
-            let d = Bls12_381BaseField::square(y2) * INTEGER_EIGHT % modulus;
-
-            let c8 = Bls12_381BaseField::mul(c.clone(), &INTEGER_EIGHT);
-            let x = Bls12_381BaseField::sub(Bls12_381BaseField::square(a.clone()), &c8);
-            let x = Bls12_381BaseField::mul(x, &b);
-
-            let c4 = Bls12_381BaseField::mul(c, &INTEGER_FOUR);
-            let a2 = Bls12_381BaseField::square(a.clone());
-            let c4_sub_a2 = Bls12_381BaseField::sub(c4, &a2);
-            let y = Bls12_381BaseField::mul(a, &c4_sub_a2);
-
-            let d2 = Bls12_381BaseField::mul(d.clone(), &INTEGER_TWO);
-            let y = Bls12_381BaseField::sub(y, &d2);
-
-            let z = BLS12_381_BASE.cubic(b);
-
-            println!("x: {:#}", x.to_string_radix(16));
-            println!("y: {:#}", y.to_string_radix(16));
-            println!("z: {:#}", z.to_string_radix(16));
+            println!("x_prime: {:#}", x_prime.to_string_radix(16));
+            println!("y_prime: {:#}", y_prime.to_string_radix(16));
+            println!("z_prime: {:#}", z_prime.to_string_radix(16));
 
             println!();
+
+            let x_cub = BLS12_381_BASE.cubic(point.x.clone());
+            let z_cub = BLS12_381_BASE.cubic(point.z.clone());
+
+            println!();
+            println!();
+
+            ////////////////////////?//////////////////////////////////
+
+            let modulus = Bls12_381BaseField::modulus();
+            let b = Bls12_381BaseField::mul(point.y.clone(), &point.z) * INTEGER_TWO % modulus;
+            let z = BLS12_381_BASE.cubic(b);
+
+            println!("z: {:#}", z.to_string_radix(16));
+
+            ////////////////////////?//////////////////////////////////
+
+            // let modulus = Bls12_381BaseField::modulus();
+            // let a =
+            //     Bls12_381BaseField::mul(Bls12_381BaseField::square(point.x.clone()), INTEGER_THREE)
+            //         + Bls12_381BaseField::mul(
+            //             Bls12_381BaseField::square(point.z.clone()),
+            //             INTEGER_FOUR,
+            //         );
+            // let b = Bls12_381BaseField::mul(point.y.clone(), &point.z) * INTEGER_TWO % modulus;
+
+            // let y2 = Bls12_381BaseField::square(point.y.clone());
+            // let c = Bls12_381BaseField::mul(y2.clone(), &point.x) * INTEGER_FOUR;
+
+            // let d = Bls12_381BaseField::square(y2) * INTEGER_EIGHT % modulus;
+
+            // let c8 = Bls12_381BaseField::mul(c.clone(), &INTEGER_EIGHT);
+            // let x = Bls12_381BaseField::sub(Bls12_381BaseField::square(a.clone()), &c8);
+            // let x = Bls12_381BaseField::mul(x, &b);
+
+            // let c4 = Bls12_381BaseField::mul(c, &INTEGER_FOUR);
+            // let a2 = Bls12_381BaseField::square(a.clone());
+            // let c4_sub_a2 = Bls12_381BaseField::sub(c4, &a2);
+            // let y = Bls12_381BaseField::mul(a, &c4_sub_a2);
+
+            // let d2 = Bls12_381BaseField::mul(d.clone(), &INTEGER_TWO);
+            // let y = Bls12_381BaseField::sub(y, &d2);
+
+            // let z = BLS12_381_BASE.cubic(b);
+
+            // println!("x: {:#}", x.to_string_radix(16));
+            // println!("y: {:#}", y.to_string_radix(16));
+            // println!("z: {:#}", z.to_string_radix(16));
+
+            // println!();
             // let mul_result = Bls12_381BaseField::mul(x.0.clone(), &Bls12_381BaseField::one());
             // println!("mul_result: {}", mul_result.to_string_radix(16));
 
