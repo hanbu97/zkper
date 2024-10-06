@@ -1,10 +1,6 @@
-use crate::{
-    backends::montgomery::{INTEGER_THREE, INTEGER_TWO},
-    curves::bls12_381::{BLS12_381_BASE, MILLER_LOOP_CONSTANT},
-};
+use crate::curves::bls12_381::{BLS12_381_BASE, MILLER_LOOP_CONSTANT, MILLER_LOOP_CONSTANT_IS_NEG};
 
 use self::g1_affine::G1Affine;
-use rug::{ops::Pow, Complete};
 
 use super::*;
 
@@ -14,6 +10,19 @@ pub struct G1Projective {
     pub y: Integer,
     pub z: Integer,
 }
+
+impl PartialEq for G1Projective {
+    fn eq(&self, other: &Self) -> bool {
+        let self_normalized = self.normalize();
+        let other_normalized = other.normalize();
+
+        self_normalized.x == other_normalized.x
+            && self_normalized.y == other_normalized.y
+            && self_normalized.z == other_normalized.z
+    }
+}
+
+impl Eq for G1Projective {}
 
 impl<'a> From<&'a G1Affine> for G1Projective {
     fn from(p: &'a G1Affine) -> G1Projective {
@@ -152,31 +161,51 @@ impl G1Projective {
             .into()
     }
 
-    // /// Frobenius endomorphism of the point
-    // /// This operation is crucial in the context of the Miller loop for BLS12-381
-    // pub fn frobenius_map(&self) -> G1Projective {
-    //     let mut result = G1Projective::identity();
-    //     let mut temp = self.clone();
+    /// Subtract another point from this point
+    pub fn sub(&self, rhs: &G1Projective) -> G1Projective {
+        self.add(&rhs.neg())
+    }
 
-    //     // Skip the first bit as it's always 1 for BLS12-381
-    //     let mut x = MILLER_LOOP_CONSTANT >> 1;
+    /// Subtract another point from this point in montgomery form
+    pub fn sub_mont(&self, rhs: &G1Projective) -> G1Projective {
+        self.add_mont(&rhs.neg())
+    }
 
-    //     while x != 0 {
-    //         temp = temp.double();
+    /// Frobenius endomorphism of the point
+    /// This operation is crucial in the context of the Miller loop for BLS12-381
+    pub fn frobenius_map(&self) -> G1Projective {
+        let mut result = G1Projective::identity();
+        let mut temp = self.clone();
 
-    //         if x % 2 == 1 {
-    //             result = result.add(&temp);
-    //         }
-    //         x >>= 1;
-    //     }
+        // Skip the first bit as it's always 1 for BLS12-381
+        let mut x = MILLER_LOOP_CONSTANT >> 1;
 
-    //     // Apply the sign of x
-    //     if MILLER_LOOP_CONSTANT_IS_NEG {
-    //         result.neg()
-    //     } else {
-    //         result
-    //     }
-    // }
+        while x != 0 {
+            temp = temp.double();
+
+            if x % 2 == 1 {
+                result = result.add(&temp);
+            }
+            x >>= 1;
+        }
+
+        // Apply the sign of x
+        if MILLER_LOOP_CONSTANT_IS_NEG {
+            result.neg()
+        } else {
+            result
+        }
+    }
+
+    /// Final exponentiation in the context of the Miller loop
+    /// This operation ensures that the point is in the correct subgroup
+    ///
+    /// Multiplies by $(1 - z)$, where $z$ is the parameter of BLS12-381, which
+    /// [suffices to clear](https://ia.cr/2019/403) the cofactor and map
+    /// elliptic curve points to elements of $\mathbb{G}\_1$.
+    pub fn final_exponentiation(&self) -> G1Projective {
+        self.sub(&self.frobenius_map())
+    }
 
     pub fn random<R: RngCore>(rng: &mut R) -> Self {
         // loop {
@@ -202,20 +231,16 @@ impl G1Projective {
                 z: Bls12_381BaseField::one(),
             };
 
-            println!("point: {}", point);
+            // clear cofactor
+            let proj_point = point.final_exponentiation();
 
-            // Convert to projective coordinates and clear cofactor
-            // let proj_point = point.to_curve().final_exponentiation();
-
-            // // Ensure the generated point is not the point at infinity
-            // if !proj_point.is_identity() {
-            //     return proj_point;
-            // }
+            // Ensure the generated point is not the point at infinity
+            if !proj_point.is_identity() {
+                return proj_point;
+            }
         }
 
         Self::identity()
-
-        // }
     }
 }
 
@@ -272,7 +297,7 @@ mod tests {
         println!("flip_sign: {}", flip_sign);
 
         // Compute y = sqrt(x^3 + 4)
-        let y_squared = Bls12_381BaseField::cubic(x.0.clone()) + 4;
+        let y_squared = Bls12_381BaseField::cubic(x.0.clone()) + INTEGER_FOUR;
         let y_squared = Bls12_381BaseField::sqrt(y_squared);
 
         if let Some(y) = y_squared {
