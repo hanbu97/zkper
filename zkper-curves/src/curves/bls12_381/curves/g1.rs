@@ -65,6 +65,10 @@ impl G1Projective {
     pub fn new(x: Integer, y: Integer, z: Integer) -> Self {
         Self { x, y, z }
     }
+
+    pub fn to_tuple(&self) -> (Integer, Integer, Integer) {
+        (self.x.clone(), self.y.clone(), self.z.clone())
+    }
 }
 
 impl G1Projective {
@@ -209,39 +213,34 @@ mod tests {
 
             println!();
 
+            let point_double = point.double();
+            println!("point_double: {:#}", point_double);
+
+            println!();
+
             let x_mont = BLS12_381_BASE.to_montgomery(&point.x);
             let y_mont = BLS12_381_BASE.to_montgomery(&point.y);
             let z_mont = BLS12_381_BASE.to_montgomery(&point.z);
 
-            let point_mont = G1Projective {
-                x: x_mont,
-                y: y_mont,
-                z: z_mont,
-            };
+            let point_add =
+                BLS12_381_BASE.add_mont(&x_mont, &y_mont, &z_mont, &x_mont, &y_mont, &z_mont);
 
-            let double_mont =
-                BLS12_381_BASE.double_mont(&point_mont.x, &point_mont.y, &point_mont.z);
+            let x_raw = BLS12_381_BASE.from_montgomery(&point_add.0);
+            let y_raw = BLS12_381_BASE.from_montgomery(&point_add.1);
+            let z_raw = BLS12_381_BASE.from_montgomery(&point_add.2);
 
-            let x_prime = BLS12_381_BASE.from_montgomery(&double_mont.0);
-            let y_prime = BLS12_381_BASE.from_montgomery(&double_mont.1);
-            let z_prime = BLS12_381_BASE.from_montgomery(&double_mont.2);
+            println!(
+                "point_add: {:#?}",
+                (
+                    x_raw.to_string_radix(16),
+                    y_raw.to_string_radix(16),
+                    z_raw.to_string_radix(16)
+                )
+            );
 
-            let point_prime = G1Projective {
-                x: x_prime,
-                y: y_prime,
-                z: z_prime,
-            };
-
-            println!("point_prime: {:#}", point_prime);
+            // println!("point_prime: {:#}", point_prime);
 
             println!();
-
-            let (x_prime, y_prime, z_prime) =
-                BLS12_381_BASE.double_standard(&point.x, &point.y, &point.z);
-
-            println!("x_prime: {:#}", x_prime.to_string_radix(16));
-            println!("y_prime: {:#}", y_prime.to_string_radix(16));
-            println!("z_prime: {:#}", z_prime.to_string_radix(16));
         }
     }
 }

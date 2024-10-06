@@ -5,6 +5,9 @@ use rug::Integer;
 use std::ops::Mul;
 use std::ops::Rem;
 
+use crate::curves::bls12_381::Bls12_381BaseField;
+use crate::traits::field::FieldTrait;
+
 pub trait MontgomeryExt {
     fn from_montgomery_backend(&self, backend: &MontgomeryBackend) -> Integer;
 }
@@ -45,11 +48,6 @@ pub const INTEGER_TWELVE: &'static Integer = {
     BorrowInteger::const_deref(&BORROW)
 };
 
-#[test]
-fn test_const_integer() {
-    println!("INTEGER_TWELVE: {}", INTEGER_TWELVE);
-}
-
 pub struct MontgomeryBackend {
     /// The modulus of the field.
     pub modulus: Integer,
@@ -68,6 +66,8 @@ pub struct MontgomeryBackend {
 
     /// (modulus + 1) / 4 if modulus % 4 == 3
     pub modulus_plus_one_div_four: Option<Integer>,
+    /// montgomery form of 3b
+    pub three_b_mont: Integer,
 
     /// limbs
     pub limbs: usize,
@@ -90,6 +90,11 @@ impl MontgomeryBackend {
             Some((modulus.clone() + 1) / 4)
         };
 
+        let three_b_mont = {
+            let result = (INTEGER_TWELVE.clone() * &r2) % &modulus;
+            (result * &r_inv) % &modulus
+        };
+
         Self {
             modulus,
             r,
@@ -98,6 +103,7 @@ impl MontgomeryBackend {
             inv,
             r_inv,
             modulus_plus_one_div_four,
+            three_b_mont,
             limbs: limbs as usize,
         }
     }
@@ -419,8 +425,7 @@ impl MontgomeryBackend {
         let mut t2 = self.mont_mul(z, z);
 
         // 7. t2 ← b3 · t2 (b3 is 12(3*4) for bls12_381 · b, where b is the curve parameter)
-        let b3 = self.to_montgomery(&INTEGER_TWELVE);
-        t2 = self.mont_mul(&t2, &b3);
+        t2 = self.mont_mul(&t2, &self.three_b_mont);
 
         // 8. X3 ← t2 · Z3
         let mut x3 = self.mont_mul(&t2, &z3);
@@ -539,7 +544,7 @@ impl MontgomeryBackend {
         t0 = self.add(x3, &t0);
 
         // 21. t2 ← b3 · t2
-        t2 = self.mont_mul(&INTEGER_TWELVE, &t2);
+        t2 = self.mont_mul(&self.three_b_mont, &t2);
 
         // 22. Z3 ← t1 + t2
         let mut z3 = self.add(t1.clone(), &t2);
@@ -548,7 +553,7 @@ impl MontgomeryBackend {
         t1 = self.sub(t1, &t2);
 
         // 24. Y3 ← b3 · Y3
-        y3 = self.mont_mul(&INTEGER_TWELVE, &y3);
+        y3 = self.mont_mul(&self.three_b_mont, &y3);
 
         // 25. X3 ← t4 · Y3
         x3 = self.mont_mul(&t4, &y3);
