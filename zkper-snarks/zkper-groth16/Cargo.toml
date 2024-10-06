@@ -7,4 +7,6 @@ edition = "2021"
 zkper-base.workspace = true
 zkper-curves.workspace = true
 
+rug = { workspace = true, features = ["integer", "num-traits"] }
+
 rand.workspace = true

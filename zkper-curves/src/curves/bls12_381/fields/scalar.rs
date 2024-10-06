@@ -20,6 +20,9 @@ impl FieldTrait for Bls12_381ScalarField {
     fn random<R: RngCore>(rng: &mut R) -> Integer {
         BLS12_381_SCALAR.sample_raw(rng)
     }
+    fn random_mont<R: RngCore>(rng: &mut R) -> Integer {
+        BLS12_381_SCALAR.sample_mont(rng)
+    }
     fn modulus<'a>() -> &'a Integer {
         &&BLS12_381_SCALAR.modulus_ref()
     }
@@ -34,6 +37,9 @@ impl FieldTrait for Bls12_381ScalarField {
     }
     fn mont_mul(a: &Integer, b: &Integer) -> Integer {
         BLS12_381_SCALAR.mont_mul(a, b)
+    }
+    fn cubic(input: Integer) -> Integer {
+        BLS12_381_SCALAR.cubic(input)
     }
     fn to_mont(&self) -> Integer {
         BLS12_381_SCALAR.to_montgomery(&self.0)

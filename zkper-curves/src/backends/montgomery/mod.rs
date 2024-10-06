@@ -1,4 +1,5 @@
 use num_traits::identities::One;
+use num_traits::Pow;
 use rand_core::RngCore;
 use rug::integer::BorrowInteger;
 use rug::integer::MiniInteger;
@@ -7,6 +8,7 @@ use std::ops::Mul;
 use std::ops::Rem;
 
 use crate::curves::bls12_381::Bls12_381BaseField;
+use crate::curves::bls12_381::BLS12_381_BASE;
 use crate::traits::field::FieldTrait;
 
 pub trait MontgomeryExt {
@@ -67,6 +69,7 @@ pub struct MontgomeryBackend {
 
     /// (modulus + 1) / 4 if modulus % 4 == 3
     pub modulus_plus_one_div_four: Option<Integer>,
+
     /// montgomery form of 3b
     pub three_b_mont: Integer,
 
@@ -88,6 +91,8 @@ impl MontgomeryBackend {
         let modulus_plus_one_div_four = if modulus.clone() % 4 != 3 {
             None
         } else {
+            let t: Integer = (modulus.clone() + 1) / 4;
+            println!("modulus_plus_one_div_four: {:#}", t.to_string_radix(16));
             Some((modulus.clone() + 1) / 4)
         };
 
@@ -194,7 +199,7 @@ impl MontgomeryBackend {
     }
 
     /// Sample a random value in montgomery form
-    pub fn sample<R: RngCore>(&self, rng: &mut R) -> Integer {
+    pub fn sample_mont<R: RngCore>(&self, rng: &mut R) -> Integer {
         let bytes_needed = self.limbs * 16;
         let mut bytes = vec![0u8; bytes_needed];
         rng.fill_bytes(&mut bytes);
@@ -251,9 +256,21 @@ impl MontgomeryBackend {
         a.clone() * a % &self.modulus
     }
 
+    /// Squares this element in montegomery form.
+    pub fn mont_square(&self, input: &Integer) -> Integer {
+        self.mont_mul(input, input)
+    }
+
     /// cubic
-    pub fn cubic(&self, a: Integer) -> Integer {
-        (a.clone() * &a % &self.modulus) * &a % &self.modulus
+    pub fn cubic(&self, input: Integer) -> Integer {
+        let square = self.square(input.clone());
+        self.mul(square, &input)
+    }
+
+    /// cubic in montgomery form
+    pub fn mont_cubic(&self, a: &Integer) -> Integer {
+        let square = self.mont_square(a);
+        self.mont_mul(&square, a)
     }
 
     /// Exponentiates this element by a given exponent.
@@ -267,7 +284,7 @@ impl MontgomeryBackend {
     }
 
     /// Attempts to compute the square root of this element.
-    /// Shanks if p ≡ 3 (mod 4)
+    /// only fit for p ≡ 3 (mod 4) meet mont_sqrt req
     pub fn sqrt(&self, input: Integer) -> Option<Integer> {
         match &self.modulus_plus_one_div_four {
             Some(exp) => {
@@ -281,6 +298,8 @@ impl MontgomeryBackend {
             None => panic!("This sqrt implementation only works for p ≡ 3 (mod 4)"),
         }
     }
+
+    /// Shanks if p ≡ 3 (mod 4)
 
     /// Computes the multiplicative inverse of this element, if it exists.
     pub fn invert(&self, input: Integer) -> Option<Integer> {
@@ -306,6 +325,21 @@ impl MontgomeryBackend {
     }
 
     // mont Operations
+    /// Montgomery reduction: Computes (t * r^-1) mod n
+    pub fn mont_reduction(&self, t: &Integer) -> Integer {
+        let k = &self.inv; // Use precomputed inv
+        let two64 = INTEGER_TWO.clone().pow(64);
+
+        let m: Integer = (t.clone() * k) % &two64; // Faster modulo 2^64
+        let mr = (m.clone() * &self.modulus) % &two64; // Faster modulo 2^64
+        let u = (t.clone() + mr.clone() * &self.modulus) / two64;
+
+        if u >= self.modulus {
+            u - &self.modulus
+        } else {
+            u
+        }
+    }
 
     /// montgomery multiplication
     pub fn mont_mul(&self, a: &Integer, b: &Integer) -> Integer {
@@ -325,6 +359,27 @@ impl MontgomeryBackend {
             exp >>= 1;
         }
         result
+    }
+
+    /// Computes the square root of a value in Montgomery form
+    pub fn mont_sqrt(&self, input: &Integer) -> Option<Integer> {
+        // The exponent (p+1)/4 in standard form
+        match &self.modulus_plus_one_div_four {
+            // why using original value?
+            Some(exp) => {
+                // Perform exponentiation in Montgomery form
+                let sqrt = self.mont_pow(input, &exp);
+
+                // Verify the result in Montgomery form
+                let sqrt_squared = self.mont_mul(&sqrt, &sqrt);
+                if &sqrt_squared == input {
+                    Some(sqrt)
+                } else {
+                    None
+                }
+            }
+            None => panic!("This sqrt implementation only works for p ≡ 3 (mod 4)"),
+        }
     }
 
     /// point operations    

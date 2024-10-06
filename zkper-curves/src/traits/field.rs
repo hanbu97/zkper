@@ -6,6 +6,9 @@ pub trait FieldTrait {
     /// Returns an element chosen uniformly at random using a user-provided RNG.
     fn random<R: RngCore>(rng: &mut R) -> Integer;
 
+    /// Returns an element chosen uniformly at random using a user-provided RNG. in Montgomery form
+    fn random_mont<R: RngCore>(rng: &mut R) -> Integer;
+
     /// Returns the modulus of the field.
     fn modulus<'a>() -> &'a Integer;
 
@@ -26,6 +29,9 @@ pub trait FieldTrait {
 
     /// montgomery_multiply
     fn mont_mul(a: &Integer, b: &Integer) -> Integer;
+
+    /// montgomery cubic
+    fn cubic(input: Integer) -> Integer;
 
     /// zero
     fn zero() -> Integer {

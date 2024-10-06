@@ -57,6 +57,9 @@ impl FieldTrait for Bls12_381BaseField {
     fn random<R: RngCore>(rng: &mut R) -> Integer {
         BLS12_381_BASE.sample_raw(rng)
     }
+    fn random_mont<R: RngCore>(rng: &mut R) -> Integer {
+        BLS12_381_BASE.sample_mont(rng)
+    }
     fn modulus<'a>() -> &'a Integer {
         &&BLS12_381_BASE.modulus_ref()
     }
@@ -71,6 +74,9 @@ impl FieldTrait for Bls12_381BaseField {
     }
     fn mont_mul(a: &Integer, b: &Integer) -> Integer {
         BLS12_381_BASE.mont_mul(a, b)
+    }
+    fn cubic(input: Integer) -> Integer {
+        BLS12_381_BASE.cubic(input)
     }
     fn to_mont(&self) -> Integer {
         BLS12_381_BASE.to_montgomery(&self.0)
@@ -104,8 +110,56 @@ mod tests {
 
     use rug::Integer;
 
-    use crate::{curves::bls12_381::Bls12_381BaseField, traits::field::FieldTrait};
+    use crate::{
+        curves::bls12_381::{Bls12_381BaseField, BLS12_381_BASE},
+        traits::field::FieldTrait,
+    };
 
+    #[test]
+    fn test_sqrt_constant() {
+        let d = vec![
+            "ee7fbfffffffeaab",
+            "07aaffffac54ffff",
+            "d9cc34a83dac3d89",
+            "d91dd2e13ce144af",
+            "92c6e9ed90d2eb35",
+            "0680447a8e5ff9a6",
+        ];
+        let d = d
+            .iter()
+            .map(|x| u64::from_str_radix(x, 16).unwrap())
+            .collect::<Vec<_>>();
+
+        let d = Integer::from_digits::<u64>(&d, rug::integer::Order::Lsf);
+        println!("d: {}", d.to_string_radix(16));
+
+        let modulus = BLS12_381_BASE.modulus();
+        let t: Integer = modulus + 1;
+        let t: Integer = t / 4;
+
+        println!("t: {}", t.to_string_radix(16));
+    }
+
+    #[test]
+    fn test_sqrt() {
+        let a = Integer::from(4);
+        let a_mont = BLS12_381_BASE.to_montgomery(&a);
+
+        let a_sqrt = BLS12_381_BASE.mont_sqrt(&a_mont);
+
+        if let Some(a) = a_sqrt {
+            let a = BLS12_381_BASE.from_montgomery(&a);
+            println!("a_sqrt_raw: {}", a.to_string_radix(16));
+
+            let a_neg = BLS12_381_BASE.neg(a.clone());
+            println!("a_neg: {}", a_neg.to_string_radix(16));
+
+            let a_square = BLS12_381_BASE.square(a.clone());
+            println!("a_square: {}", a_square.to_string_radix(16));
+        } else {
+            println!("No square root found");
+        }
+    }
     #[test]
     fn test_square() {
         let a_mont: [u64; 6] = [
@@ -219,5 +273,11 @@ mod tests {
         let a_mont_inv_raw = Bls12_381BaseField::from_mont(&a_mont_inv);
 
         println!("a_mont_inv_raw: {}", a_mont_inv_raw.to_string_radix(16));
+
+        let modulus_plus_one_div_four = BLS12_381_BASE.modulus_plus_one_div_four.clone().unwrap();
+        println!(
+            "modulus_plus_one_div_four: {}",
+            modulus_plus_one_div_four.to_string_radix(16)
+        );
     }
 }

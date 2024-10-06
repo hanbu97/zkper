@@ -1,4 +1,7 @@
-use crate::curves::bls12_381::{BLS12_381_BASE, MILLER_LOOP_CONSTANT, MILLER_LOOP_CONSTANT_IS_NEG};
+use crate::{
+    backends::montgomery::INTEGER_FOUR,
+    curves::bls12_381::{BLS12_381_BASE, MILLER_LOOP_CONSTANT, MILLER_LOOP_CONSTANT_IS_NEG},
+};
 
 use self::g1_affine::G1Affine;
 
@@ -96,6 +99,16 @@ impl G1Projective {
             y: Bls12_381BaseField::one(),
             z: Bls12_381BaseField::zero(),
         }
+    }
+
+    /// Returns the identity element (point at infinity). in montgomery form
+    pub fn identity_mont() -> Self {
+        G1Projective {
+            x: Bls12_381BaseField::zero(),
+            y: Bls12_381BaseField::one(),
+            z: Bls12_381BaseField::zero(),
+        }
+        .to_montgomery()
     }
 
     /// Returns true if this element is the identity (the point at infinity).
@@ -197,6 +210,32 @@ impl G1Projective {
         }
     }
 
+    /// Frobenius endomorphism of the point in montgomery form
+    /// This operation is crucial in the context of the Miller loop for BLS12-381
+    pub fn frobenius_map_mont(&self) -> G1Projective {
+        let mut result = G1Projective::identity_mont();
+        let mut temp = self.clone();
+
+        // Skip the first bit as it's always 1 for BLS12-381
+        let mut x = MILLER_LOOP_CONSTANT >> 1;
+
+        while x != 0 {
+            temp = temp.double_mont();
+
+            if x % 2 == 1 {
+                result = result.add_mont(&temp);
+            }
+            x >>= 1;
+        }
+
+        // Apply the sign of x
+        if MILLER_LOOP_CONSTANT_IS_NEG {
+            result.neg()
+        } else {
+            result
+        }
+    }
+
     /// Final exponentiation in the context of the Miller loop
     /// This operation ensures that the point is in the correct subgroup
     ///
@@ -207,15 +246,60 @@ impl G1Projective {
         self.sub(&self.frobenius_map())
     }
 
-    pub fn random<R: RngCore>(rng: &mut R) -> Self {
-        // loop {
-        let x: Bls12_381BaseField = rng.gen();
+    /// Final exponentiation in the context of the Miller loop in montgomery form
+    pub fn final_exponentiation_mont(&self) -> G1Projective {
+        self.sub_mont(&self.frobenius_map_mont())
+    }
 
+    /// Returns a random element in G1
+    pub fn random<R: RngCore>(rng: &mut R) -> Self {
+        loop {
+            let x: Bls12_381BaseField = rng.gen();
+
+            let flip_sign = rng.next_u32() % 2 != 0;
+
+            // Compute y = sqrt(x^3 + 4)
+            let y_squared = Bls12_381BaseField::cubic(x.0.clone()) + INTEGER_FOUR;
+            let y_squared = Bls12_381BaseField::sqrt(y_squared);
+
+            if let Some(y) = y_squared {
+                let y = if flip_sign {
+                    Bls12_381BaseField::neg(y)
+                } else {
+                    y
+                };
+
+                // Create affine point
+                let point = G1Projective {
+                    x: x.0,
+                    y,
+                    z: Bls12_381BaseField::one(),
+                };
+
+                // clear cofactor
+                let proj_point = point.final_exponentiation();
+
+                // Ensure the generated point is not the point at infinity
+                if !proj_point.is_identity() {
+                    return proj_point;
+                }
+            }
+        }
+    }
+
+    /// Returns a random element in G1 in montgomery form
+    pub fn random_mont<R: RngCore>(rng: &mut R) -> Self {
+        // loop {
+        let x = Bls12_381BaseField::random_mont(rng);
         let flip_sign = rng.next_u32() % 2 != 0;
 
         // Compute y = sqrt(x^3 + 4)
-        let y_squared = Bls12_381BaseField::cubic(x.0.clone()) + 4;
-        let y_squared = Bls12_381BaseField::sqrt(y_squared);
+        let y_squared = BLS12_381_BASE.add(
+            BLS12_381_BASE.mont_cubic(&x),
+            &BLS12_381_BASE.to_montgomery(&INTEGER_FOUR),
+        );
+
+        let y_squared = BLS12_381_BASE.mont_sqrt(&y_squared);
 
         if let Some(y) = y_squared {
             let y = if flip_sign {
@@ -226,13 +310,13 @@ impl G1Projective {
 
             // Create affine point
             let point = G1Projective {
-                x: x.0,
+                x,
                 y,
-                z: Bls12_381BaseField::one(),
+                z: Bls12_381BaseField::r().clone(),
             };
 
             // clear cofactor
-            let proj_point = point.final_exponentiation();
+            let proj_point = point.final_exponentiation_mont();
 
             // Ensure the generated point is not the point at infinity
             if !proj_point.is_identity() {
@@ -240,7 +324,8 @@ impl G1Projective {
             }
         }
 
-        Self::identity()
+        G1Projective::identity()
+        // }
     }
 }
 

@@ -88,7 +88,7 @@ mod tests {
         println!("limbs: {}", limbs);
 
         let mut rng = ZkperRng::new_test();
-        let scalar = BLS12_381_SCALAR.sample(&mut rng);
+        let scalar = BLS12_381_SCALAR.sample_mont(&mut rng);
         println!("scalar: {}", scalar.to_string_radix(16));
         let scalar_from_mont = BLS12_381_SCALAR.from_montgomery(&scalar);
         println!("scalar_from_mont: {}", scalar_from_mont.to_string_radix(16));
@@ -110,7 +110,7 @@ mod tests {
         println!("limbs_base: {}", limbs_base);
 
         let mut rng = ZkperRng::new_test();
-        let base = BLS12_381_BASE.sample(&mut rng);
+        let base = BLS12_381_BASE.sample_mont(&mut rng);
         println!("base: {}", base.to_string_radix(16));
         let base_from_mont = BLS12_381_BASE.from_montgomery(&base);
         println!("base_from_mont: {}", base_from_mont.to_string_radix(16));
