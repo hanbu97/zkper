@@ -69,6 +69,14 @@ impl G1Projective {
     pub fn to_tuple(&self) -> (Integer, Integer, Integer) {
         (self.x.clone(), self.y.clone(), self.z.clone())
     }
+
+    pub fn from_str_hex(x: &str, y: &str, z: &str) -> Self {
+        Self {
+            x: Integer::from_str_radix(x.strip_prefix("0x").unwrap_or(x), 16).unwrap(),
+            y: Integer::from_str_radix(y.strip_prefix("0x").unwrap_or(y), 16).unwrap(),
+            z: Integer::from_str_radix(z.strip_prefix("0x").unwrap_or(z), 16).unwrap(),
+        }
+    }
 }
 
 impl G1Projective {
@@ -95,9 +103,52 @@ impl G1Projective {
         }
     }
 
+    /// to montgomery form
+    pub fn to_montgomery(&self) -> G1Projective {
+        G1Projective {
+            x: BLS12_381_BASE.to_montgomery(&self.x),
+            y: BLS12_381_BASE.to_montgomery(&self.y),
+            z: BLS12_381_BASE.to_montgomery(&self.z),
+        }
+    }
+
+    /// from montgomery form
+    pub fn from_montgomery(&self) -> G1Projective {
+        G1Projective {
+            x: BLS12_381_BASE.from_montgomery(&self.x),
+            y: BLS12_381_BASE.from_montgomery(&self.y),
+            z: BLS12_381_BASE.from_montgomery(&self.z),
+        }
+    }
+
+    /// normalize
+    pub fn normalize(&self) -> G1Projective {
+        BLS12_381_BASE.normalize(&self.x, &self.y, &self.z).into()
+    }
+
+    /// Double this point
     pub fn double(&self) -> Self {
         BLS12_381_BASE
             .double_standard(&self.x, &self.y, &self.z)
+            .into()
+    }
+
+    /// Double this point in montgomery form
+    pub fn double_mont(&self) -> Self {
+        BLS12_381_BASE.double_mont(&self.x, &self.y, &self.z).into()
+    }
+
+    /// Add this point to another point
+    pub fn add(&self, other: &G1Projective) -> Self {
+        BLS12_381_BASE
+            .add_standard(&self.x, &self.y, &self.z, &other.x, &other.y, &other.z)
+            .into()
+    }
+
+    /// Add this point to another point in montgomery form
+    pub fn add_mont(&self, other: &G1Projective) -> Self {
+        BLS12_381_BASE
+            .add_mont(&self.x, &self.y, &self.z, &other.x, &other.y, &other.z)
             .into()
     }
 
@@ -180,6 +231,37 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_add() {
+        let p1 = G1Projective::from_str_hex(
+            "0x04aa8444f5077e437fbc394ff94e0c40647be6a1fe7f1997be46b6612a579b026cfa2a62db4f358994b0a261a97744a4",
+            "0x113741a656f80e3496990fed5fd7bc0eec83736b16183eb89aaae7589292741f8e451c5e84677821785c6e874380b878",
+            "0x1092dad1a4779aec52001864933b85c230161cfe3d0aeee37c77e6c795c0254750ac035e38cead477205186848232f78",
+        );
+        let p2 = G1Projective::from_str_hex(
+            "0x11459e239a20dd72af811e89f44c6f60e7c8724f873a7485ca2fcad73e761c91a8700dd71be3bd474793c341b2d589fb",
+            "0x10530f94537969f0cdee7911af42ade2917cc7a00bfdb879d756882b20bab9ff69d626ace7e8e8cddc3aaeb0f8ddbe33",
+            "0x0e878d2fb01a461c980c708ecb1bd38be832f32d4dbf63b8891087823a3ab79c335bdf7436664a0f5946b13c22b63510",
+        );
+
+        let p3 = p1.add(&p2);
+
+        let p1_mont = p1.to_montgomery();
+        let p2_mont = p2.to_montgomery();
+        let p3_mont = p1_mont.add_mont(&p2_mont);
+
+        let p3_raw = p3_mont.from_montgomery();
+
+        println!("p3: {:#}", p3);
+        println!("p3_raw: {:#}", p3_raw);
+
+        let p3_norm = p3.normalize();
+        let p3_raw_norm = p3_raw.normalize();
+
+        println!("p3_norm: {:#}", p3_norm);
+        println!("p3_raw_norm: {:#}", p3_raw_norm);
+    }
+
+    #[test]
     fn test_g1_projective_random() {
         let mut rng = ZkperRng::new_test();
 
@@ -211,36 +293,39 @@ mod tests {
 
             println!("point: {:#}", point);
 
-            println!();
-
-            let point_double = point.double();
-            println!("point_double: {:#}", point_double);
+            let point_mont = point.to_montgomery();
 
             println!();
 
-            let x_mont = BLS12_381_BASE.to_montgomery(&point.x);
-            let y_mont = BLS12_381_BASE.to_montgomery(&point.y);
-            let z_mont = BLS12_381_BASE.to_montgomery(&point.z);
+            let point_identity = G1Projective::identity();
+            println!("point_identity: {:#}", point_identity);
 
-            let point_add =
-                BLS12_381_BASE.add_mont(&x_mont, &y_mont, &z_mont, &x_mont, &y_mont, &z_mont);
+            let point_identity_mont = point_identity.to_montgomery();
 
-            let x_raw = BLS12_381_BASE.from_montgomery(&point_add.0);
-            let y_raw = BLS12_381_BASE.from_montgomery(&point_add.1);
-            let z_raw = BLS12_381_BASE.from_montgomery(&point_add.2);
+            let point_add_mont = point_mont.add_mont(&point_identity_mont);
+            let point_add_mont_raw = point_add_mont.from_montgomery();
 
-            println!(
-                "point_add: {:#?}",
-                (
-                    x_raw.to_string_radix(16),
-                    y_raw.to_string_radix(16),
-                    z_raw.to_string_radix(16)
-                )
-            );
+            println!("point_add_mont_raw: {:#}", point_add_mont_raw);
 
-            // println!("point_prime: {:#}", point_prime);
+            let point_add_mont_raw_norm = point_add_mont_raw.normalize();
+            println!("point_add_mont_raw_norm: {:#}", point_add_mont_raw_norm);
 
             println!();
+            println!();
+
+            let p1 = BLS12_381_BASE.new_element(point_add_mont_raw.x);
+            let p2 = BLS12_381_BASE.new_element(point_add_mont_raw.y);
+            let p3 = BLS12_381_BASE.new_element(point_add_mont_raw.z);
+
+            println!("p1: {:#}", p1.to_string_radix(16));
+            println!("p2: {:#}", p2.to_string_radix(16));
+            println!("p3: {:#}", p3.to_string_radix(16));
+
+            println!();
+            println!();
+
+            let point_add = point.add(&point_identity);
+            println!("point_add: {:#}", point_add);
         }
     }
 }

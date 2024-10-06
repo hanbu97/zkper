@@ -1,3 +1,4 @@
+use num_traits::identities::One;
 use rand_core::RngCore;
 use rug::integer::BorrowInteger;
 use rug::integer::MiniInteger;
@@ -327,6 +328,20 @@ impl MontgomeryBackend {
     }
 
     /// point operations    
+    ///
+    ///// Normalizes projective coordinates to the form (X:Y:1)
+    pub fn normalize(&self, x: &Integer, y: &Integer, z: &Integer) -> (Integer, Integer, Integer) {
+        if z.is_one() {
+            return (x.clone(), y.clone(), z.clone());
+        }
+        let z_inv = z
+            .clone()
+            .invert(self.modulus_ref())
+            .expect("Z should be invertible");
+        let x_norm = (x.clone() * &z_inv) % self.modulus_ref();
+        let y_norm = (y.clone() * &z_inv) % self.modulus_ref();
+        (x_norm, y_norm, Integer::from(1))
+    }
 
     /// Doubles a point (X, Y, Z) in standard projective coordinates.
     ///
@@ -346,6 +361,8 @@ impl MontgomeryBackend {
     /// - For BLS12-377: b = 1
     ///
     /// The doubling formula used here is optimized for a = 0 curves.
+    ///
+    /// ref: https://leastauthority.com/static/publications/MoonMath080822.pdf Page 84 Algorithm 7 Projective short Weierstrass Addition Law
     pub fn double_standard(
         &self,
         x: &Integer,
@@ -583,5 +600,94 @@ impl MontgomeryBackend {
         z3 = self.add(z3, &t0);
 
         (x3, y3, z3)
+    }
+
+    /// Adds two points (X1, Y1, Z1) and (X2, Y2, Z2) using standard arithmetic, following Algorithm 7.
+    ///
+    /// # Arguments
+    ///
+    /// * `x1`, `y1`, `z1` - The coordinates of the first point in standard form.
+    /// * `x2`, `y2`, `z2` - The coordinates of the second point in standard form.
+    ///
+    /// # Returns
+    ///
+    /// A tuple `(X3, Y3, Z3)` representing the sum of the two points in standard form.
+    ///
+    /// ref: https://leastauthority.com/static/publications/MoonMath080822.pdf Page 84 Algorithm 7 Projective short Weierstrass Addition Law
+
+    pub fn add_standard(
+        &self,
+        x1: &Integer,
+        y1: &Integer,
+        z1: &Integer,
+        x2: &Integer,
+        y2: &Integer,
+        z2: &Integer,
+    ) -> (Integer, Integer, Integer) {
+        // Check if first point is the point at infinity
+        if z1.is_zero() {
+            return (x2.clone(), y2.clone(), z2.clone());
+        }
+
+        // Check if second point is the point at infinity
+        if z2.is_zero() {
+            return (x1.clone(), y1.clone(), z1.clone());
+        }
+
+        // U1 ← Y2 · Z1
+        let u1 = self.mul(y2.clone(), z1);
+
+        // U2 ← Y1 · Z2
+        let u2 = self.mul(y1.clone(), z2);
+
+        // V1 ← X2 · Z1
+        let v1 = self.mul(x2.clone(), z1);
+
+        // V2 ← X1 · Z2
+        let v2 = self.mul(x1.clone(), z2);
+
+        if v1 == v2 {
+            if u1 != u2 {
+                // Points are inverses of each other, return point at infinity
+                return (Integer::ZERO, Integer::ONE.clone(), Integer::ZERO);
+            } else {
+                if y1.is_zero() {
+                    // Point is of order 2, return point at infinity
+                    return (Integer::ZERO, Integer::ONE.clone(), Integer::ZERO);
+                } else {
+                    // Points are the same, use point doubling
+                    return self.double_standard(x1, y1, z1);
+                }
+            }
+        } else {
+            // U = U1 - U2
+            let u = self.sub(u1, &u2);
+
+            // V = V1 - V2
+            let v = self.sub(v1, &v2);
+
+            // W = Z1 · Z2
+            let w = self.mul(z1.clone(), z2);
+
+            // A = U^2 · W - V^3 - 2 · V^2 · V2
+            let a = self.sub(
+                self.sub(self.mul(self.square(u.clone()), &w), &self.cubic(v.clone())),
+                &self.mul(INTEGER_TWO.clone(), &self.mul(self.square(v.clone()), &v2)),
+            );
+
+            // X' = V · A
+            let x3 = self.mul(v.clone(), &a);
+
+            // Y' = U · (V^2 · V2 - A) - V^3 · U2
+            let y3 = self.sub(
+                self.mul(u, &self.sub(self.mul(self.square(v.clone()), &v2), &a)),
+                &self.mul(self.cubic(v.clone()), &u2),
+            );
+
+            // Z' = V^3 · W
+            let z3 = self.mul(self.cubic(v), &w);
+
+            return (x3, y3, z3);
+        }
     }
 }
