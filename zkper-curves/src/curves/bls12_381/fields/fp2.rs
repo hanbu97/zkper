@@ -141,12 +141,27 @@ impl Fp2 {
             c1: BLS12_381_BASE.mul(c, &self.c1),
         }
     }
+
+    /// Computes the multiplicative inverse of this field element.
+    /// Returns None if the element is zero.
+    pub fn invert(&self) -> Option<Self> {
+        // For a + bu, we compute the inverse as (a - bu) / (a^2 + b^2)
+        // This uses the identity (a + bu)(a - bu) = a^2 + b^2
+        // Note: This requires only one inversion in the base field
+
+        let a_squared = BLS12_381_BASE.square(self.c0.clone());
+        let b_squared = BLS12_381_BASE.square(self.c1.clone());
+        let sum_of_squares = BLS12_381_BASE.add(a_squared, &b_squared);
+
+        BLS12_381_BASE.invert(sum_of_squares).map(|t| Self {
+            c0: BLS12_381_BASE.mul(self.c0.clone(), &t),
+            c1: BLS12_381_BASE.neg(BLS12_381_BASE.mul(self.c1.clone(), &t)),
+        })
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::curves::bls12_381::Bls12_381BaseField;
-
     use super::Fp2;
 
     fn gen_a() -> Fp2 {
@@ -318,5 +333,56 @@ mod tests {
         .from_monterey();
 
         assert_eq!(a.neg(), b);
+    }
+
+    #[test]
+    fn test_invert() {
+        let a = Fp2::from_u64_vec(
+            &[
+                0x1128_ecad_6754_9455,
+                0x9e7a_1cff_3a4e_a1a8,
+                0xeb20_8d51_e08b_cf27,
+                0xe98a_d408_11f5_fc2b,
+                0x736c_3a59_232d_511d,
+                0x10ac_d42d_29cf_cbb6,
+            ],
+            &[
+                0xd328_e37c_c2f5_8d41,
+                0x948d_f085_8a60_5869,
+                0x6032_f9d5_6f93_a573,
+                0x2be4_83ef_3fff_dc87,
+                0x30ef_61f8_8f48_3c2a,
+                0x1333_f55a_3572_5be0,
+            ],
+        )
+        .from_monterey();
+        let b = Fp2::from_u64_vec(
+            &[
+                0x0581_a133_3d4f_48a6,
+                0x5824_2f6e_f074_8500,
+                0x0292_c955_349e_6da5,
+                0xba37_721d_dd95_fcd0,
+                0x70d1_6790_3aa5_dfc5,
+                0x1189_5e11_8b58_a9d5,
+            ],
+            &[
+                0x0eda_09d2_d7a8_5d17,
+                0x8808_e137_a7d1_a2cf,
+                0x43ae_2625_c1ff_21db,
+                0xf85a_c9fd_f7a7_4c64,
+                0x8fcc_dda5_b8da_9738,
+                0x08e8_4f0c_b32c_d17d,
+            ],
+        )
+        .from_monterey();
+
+        assert!(a.invert().is_some());
+        assert_eq!(a.invert().unwrap(), b);
+
+        assert!(b.invert().is_some());
+        assert_eq!(b.invert().unwrap(), a);
+
+        let c = Fp2::zero();
+        assert!(c.invert().is_none());
     }
 }
