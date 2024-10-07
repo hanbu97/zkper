@@ -8,3 +8,4 @@ use crate::{curves::bls12_381::Bls12_381BaseField, traits::field::FieldTrait};
 pub mod g1;
 pub mod g1_affine;
 pub mod g2;
+pub mod g2_affine;

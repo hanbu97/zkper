@@ -436,6 +436,7 @@ impl MontgomeryBackend {
     ///
     /// The doubling formula used here is optimized for a = 0 curves.
     ///
+    /// ref: https://eprint.iacr.org/2015/1060.pdf, Algorithm 9
     /// ref: https://leastauthority.com/static/publications/MoonMath080822.pdf Page 84 Algorithm 7 Projective short Weierstrass Addition Law
     pub fn double_standard(
         &self,

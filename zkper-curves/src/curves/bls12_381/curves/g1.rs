@@ -269,7 +269,6 @@ impl G1Projective {
                     y
                 };
 
-                // Create affine point
                 let point = G1Projective {
                     x: x.0,
                     y,

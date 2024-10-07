@@ -24,6 +24,10 @@ impl Display for Fp2 {
 }
 
 impl Fp2 {
+    pub fn from_integers(c0: Integer, c1: Integer) -> Self {
+        Self { c0, c1 }
+    }
+
     pub fn from_u64_hex_str_vec(c0: &[&str], c1: &[&str]) -> Self {
         let c0 = Bls12_381BaseField::from_u64_hex_str_vec(c0);
         let c1 = Bls12_381BaseField::from_u64_hex_str_vec(c1);
@@ -98,6 +102,13 @@ impl Fp2 {
         }
     }
 
+    pub fn add_base(&self, rhs: &Integer) -> Self {
+        Self {
+            c0: BLS12_381_BASE.add(self.c0.clone(), rhs),
+            c1: BLS12_381_BASE.add(self.c1.clone(), rhs),
+        }
+    }
+
     pub fn sub(&self, rhs: &Fp2) -> Self {
         Self {
             c0: BLS12_381_BASE.sub(self.c0.clone(), &rhs.c0),
@@ -142,6 +153,11 @@ impl Fp2 {
             c0: BLS12_381_BASE.mul(a, &b),
             c1: BLS12_381_BASE.mul(c, &self.c1),
         }
+    }
+
+    pub fn cubic(&self) -> Self {
+        let square = self.square();
+        self.mul(&square)
     }
 
     /// Computes the multiplicative inverse of this field element.
