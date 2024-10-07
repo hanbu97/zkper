@@ -3,6 +3,8 @@ use rug::Integer;
 use std::fmt::Display;
 
 use super::base::Bls12_381BaseField;
+use num_traits::One;
+use num_traits::Pow;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Fp2 {
@@ -14,7 +16,7 @@ impl Display for Fp2 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "({}, {})",
+            "(\n    {} +\n    {} * u\n)",
             self.c0.to_string_radix(16),
             self.c1.to_string_radix(16)
         )
@@ -158,11 +160,149 @@ impl Fp2 {
             c1: BLS12_381_BASE.neg(BLS12_381_BASE.mul(self.c1.clone(), &t)),
         })
     }
+
+    /// Exponentiation by a large power (variable time)
+    pub fn pow(&self, exponent: &Integer) -> Self {
+        if exponent.is_zero() {
+            return Self::one();
+        } else if exponent == &Integer::from(1) {
+            return self.clone();
+        } else {
+            let mut result = self.clone();
+            let mut exp = exponent.clone();
+
+            while exp.is_even() {
+                result = result.square();
+                exp >>= 1;
+            }
+
+            if exp.is_one() {
+                return result;
+            }
+
+            let mut base = result.clone();
+            exp >>= 1;
+
+            while !exp.is_zero() {
+                base = base.square();
+                if exp.is_odd() {
+                    result = result.mul(&base);
+                }
+                exp >>= 1;
+            }
+
+            result
+        }
+    }
+
+    /// Attempts to compute the square root of this element in Fp2.
+    /// Returns None if the element is not a quadratic residue.
+    /// for p = 3 mod 4
+    ///
+    /// ref: https://eprint.iacr.org/2012/685.pdf Page 17 Algorithm 9
+    ///
+    ///
+    pub fn sqrt(&self) -> Option<Self> {
+        if self.is_zero() {
+            return Some(Self::zero());
+        }
+
+        // 1: a1 ← a^((q-3)/4)
+        let a1 = self.pow(
+            &(BLS12_381_BASE
+                .fp2_sqrt_constant1
+                .clone()
+                .expect("sqrt constant1")),
+        );
+
+        // 2: α ← a1(a1a)
+        let alpha = a1.mul(&a1.mul(self));
+
+        // 3: a0 ← a^q * α
+        let a0 = self.frobenius_map().mul(&alpha);
+
+        // 4-6: if a0 = -1 then return false
+        if a0.eq(&Self::one().neg()) {
+            return None;
+        }
+
+        // 7: x0 ← a1a
+        let x0 = a1.mul(self);
+
+        // 8-9: if α = -1 then x ← ix0
+        if alpha.eq(&Self::one().neg()) {
+            return Some(Self {
+                c0: BLS12_381_BASE.neg(x0.c1),
+                c1: x0.c0,
+            });
+        } else {
+            // 10-12: else b ← (1 + α)^((q-1)/2), x ← bx0
+            let b = Self::one().add(&alpha).pow(
+                &BLS12_381_BASE
+                    .fp2_sqrt_constant2
+                    .clone()
+                    .expect("sqrt constant1"),
+            );
+            let x = b.mul(&x0);
+
+            // Verify that x^2 = a
+            if x.square().eq(self) {
+                Some(x)
+            } else {
+                None
+            }
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use rug::Integer;
+
     use super::Fp2;
+
+    #[test]
+    fn test_sqrt_constants() {
+        use num_traits::Pow;
+
+        // (q - 3) / 4
+        let p = super::BLS12_381_BASE.modulus();
+        let p2: Integer = p.clone() ^ 2 % p.clone();
+
+        let q: Integer = (p2.clone() - 3) / 4;
+        println!("q: {:#?}", q);
+
+        let p = super::BLS12_381_BASE.modulus();
+        let q: Integer = p.pow(2) - 3;
+        let q = q / 4;
+
+        println!("q: {:#?}", q);
+
+        // let q_u64 = q
+        //     .to_digits::<u64>(rug::integer::Order::Lsf)
+        //     .into_iter()
+        //     .map(|x| format!("{:x}", x))
+        //     .collect::<Vec<_>>();
+        // println!("q: {:#?}", q_u64);
+
+        // // (q - 1) / 2
+        // let q: Integer = Integer::from(p2 - 1).div_rem(2.into()).0;
+        // let q_u64 = q
+        //     .to_digits::<u64>(rug::integer::Order::Lsf)
+        //     .into_iter()
+        //     .map(|x| format!("{:x}", x))
+        //     .collect::<Vec<_>>();
+
+        // println!("q: {:#?}", q_u64);
+    }
+
+    #[test]
+    fn test_q_mod_4() {
+        let p = super::BLS12_381_BASE.modulus();
+        let reminder = p.clone() % 4;
+
+        println!("t: {}", reminder);
+    }
 
     fn gen_a() -> Fp2 {
         let fp2 = super::Fp2::from_u64_vec(
@@ -384,5 +524,95 @@ mod tests {
 
         let c = Fp2::zero();
         assert!(c.invert().is_none());
+    }
+
+    #[test]
+    fn test_pow() {
+        let a = gen_a();
+        let b = gen_b();
+        let c = gen_c();
+
+        let a2 = a.pow(&Integer::from(2));
+        let a3 = a.pow(&Integer::from(3));
+
+        assert_eq!(a2, b);
+        assert_eq!(a3, c);
+    }
+
+    #[test]
+    fn test_sqrt() {
+        let a = Fp2::from_u64_vec(
+            &[
+                0x2bee_d146_27d7_f9e9,
+                0xb661_4e06_660e_5dce,
+                0x06c4_cc7c_2f91_d42c,
+                0x996d_7847_4b7a_63cc,
+                0xebae_bc4c_820d_574e,
+                0x1886_5e12_d93f_d845,
+            ],
+            &[
+                0x7d82_8664_baf4_f566,
+                0xd17e_6639_96ec_7339,
+                0x679e_ad55_cb40_78d0,
+                0xfe3b_2260_e001_ec28,
+                0x3059_93d0_43d9_1b68,
+                0x0626_f03c_0489_b72d,
+            ],
+        )
+        .from_monterey();
+
+        assert_eq!(a.sqrt().unwrap().square(), a);
+
+        // b = 5, which is a generator of the p - 1 order
+        // multiplicative subgroup
+        let b = Fp2::from_u64_vec(
+            &[
+                0x6631_0000_0010_5545,
+                0x2114_0040_0eec_000d,
+                0x3fa7_af30_c820_e316,
+                0xc52a_8b8d_6387_695d,
+                0x9fb4_e61d_1e83_eac5,
+                0x005c_b922_afe8_4dc7,
+            ],
+            &[0, 0, 0, 0, 0, 0],
+        );
+        assert_eq!(b.sqrt().unwrap().square(), b);
+
+        // c = 25, which is a generator of the (p - 1) / 2 order
+        // multiplicative subgroup
+        let c = Fp2::from_u64_vec(
+            &[
+                0x44f6_0000_0051_ffae,
+                0x86b8_0141_9948_0043,
+                0xd715_9952_f1f3_794a,
+                0x755d_6e3d_fe1f_fc12,
+                0xd36c_d6db_5547_e905,
+                0x02f8_c8ec_bf18_67bb,
+            ],
+            &[0, 0, 0, 0, 0, 0],
+        );
+        assert_eq!(c.sqrt().unwrap().square(), c);
+
+        // 2155129644831861015726826462986972654175647013268275306775721078997042729172900466542651176384766902407257452753362*u + 2796889544896299244102912275102369318775038861758288697415827248356648685135290329705805931514906495247464901062529
+        // is nonsquare.
+        let c = Fp2::from_u64_vec(
+            &[
+                0xc5fa_1bc8_fd00_d7f6,
+                0x3830_ca45_4606_003b,
+                0x2b28_7f11_04b1_02da,
+                0xa7fb_30f2_8230_f23e,
+                0x339c_db9e_e953_dbf0,
+                0x0d78_ec51_d989_fc57,
+            ],
+            &[
+                0x27ec_4898_cf87_f613,
+                0x9de1_394e_1abb_05a5,
+                0x0947_f85d_c170_fc14,
+                0x586f_bc69_6b61_14b7,
+                0x2b34_75a4_077d_7169,
+                0x13e1_c895_cc4b_6c22,
+            ],
+        );
+        assert!(c.sqrt().is_none());
     }
 }

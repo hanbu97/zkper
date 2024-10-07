@@ -3,9 +3,15 @@ use num_traits::Pow;
 use rand_core::RngCore;
 use rug::integer::BorrowInteger;
 use rug::integer::MiniInteger;
+use rug::ops::DivRounding;
 use rug::Integer;
+use std::ops::Add;
+use std::ops::Div;
 use std::ops::Mul;
 use std::ops::Rem;
+use std::ops::Sub;
+
+use crate::curves::bls12_381::BLS12_381_BASE;
 
 pub trait MontgomeryExt {
     fn from_montgomery_backend(&self, backend: &MontgomeryBackend) -> Integer;
@@ -66,6 +72,10 @@ pub struct MontgomeryBackend {
     /// (modulus + 1) / 4 if modulus % 4 == 3
     pub modulus_plus_one_div_four: Option<Integer>,
 
+    /// for fp2 sqrt (modulus - 3) / 4 if modulus % 4 == 3. ref: https://eprint.iacr.org/2012/685.pdf algorithm 9
+    pub fp2_sqrt_constant1: Option<Integer>,
+    pub fp2_sqrt_constant2: Option<Integer>,
+
     /// montgomery form of 3b
     pub three_b_mont: Integer,
 
@@ -84,11 +94,24 @@ impl MontgomeryBackend {
         let inv = Self::compute_inv(&modulus);
         let r_inv = r.clone().invert(&modulus).expect("R should be invertible");
 
-        let modulus_plus_one_div_four = if modulus.clone() % 4 != 3 {
-            None
-        } else {
-            Some((modulus.clone() + 1) / 4)
-        };
+        let (modulus_plus_one_div_four, fp2_sqrt_constant1, fp2_sqrt_constant2) =
+            if modulus.clone() % 4 != 3 {
+                (None, None, None)
+            } else {
+                // (p + 1) / 4
+                let c1 = (modulus.clone() + 1) / 4;
+
+                let p = modulus.clone();
+                let q: Integer = p ^ 2;
+
+                // (q - 3) / 4
+                let q1: Integer = ((q.clone() - 3) / 4) + 1;
+
+                // (q - 1) / 2
+                let q2: Integer = (q - 1) / 2 + 1;
+
+                (Some(c1), Some(q1), Some(q2))
+            };
 
         let three_b_mont = {
             let result = (INTEGER_TWELVE.clone() * &r2) % &modulus;
@@ -103,6 +126,8 @@ impl MontgomeryBackend {
             inv,
             r_inv,
             modulus_plus_one_div_four,
+            fp2_sqrt_constant1,
+            fp2_sqrt_constant2,
             three_b_mont,
             limbs: limbs as usize,
         }
@@ -739,4 +764,10 @@ impl MontgomeryBackend {
             return (x3, y3, z3);
         }
     }
+}
+
+#[test]
+fn test_weird_calculation() {
+    let modulus = BLS12_381_BASE.modulus();
+    println!("modulus: {}", modulus.to_string_radix(16));
 }
