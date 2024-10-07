@@ -16,6 +16,8 @@ members = [
 zkper-base = { path = "zkper-base" }
 zkper-curves = { path = "zkper-curves" }
 
+anyhow = { version = "1.0.89", features = ["backtrace"] }
+
 lazy_static = "1.5.0"
 
 rand = "0.8.5"

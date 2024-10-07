@@ -291,6 +291,9 @@ impl G1Projective {
     pub fn random_mont<R: RngCore>(rng: &mut R) -> Self {
         // loop {
         let x = Bls12_381BaseField::random_mont(rng);
+
+        println!("========x: {:#}", x.to_string_radix(16));
+
         let flip_sign = rng.next_u32() % 2 != 0;
 
         // Compute y = sqrt(x^3 + 4)
@@ -314,6 +317,8 @@ impl G1Projective {
                 y,
                 z: Bls12_381BaseField::r().clone(),
             };
+
+            println!("========point: {:#}", point.from_montgomery());
 
             // clear cofactor
             let proj_point = point.final_exponentiation_mont();
