@@ -289,48 +289,42 @@ impl G1Projective {
 
     /// Returns a random element in G1 in montgomery form
     pub fn random_mont<R: RngCore>(rng: &mut R) -> Self {
-        // loop {
-        let x = Bls12_381BaseField::random_mont(rng);
+        loop {
+            let x = Bls12_381BaseField::random_mont(rng);
 
-        println!("========x: {:#}", x.to_string_radix(16));
+            let flip_sign = rng.next_u32() % 2 != 0;
 
-        let flip_sign = rng.next_u32() % 2 != 0;
+            // Compute y = sqrt(x^3 + 4)
+            let y_squared = BLS12_381_BASE.add(
+                BLS12_381_BASE.mont_cubic(&x),
+                &BLS12_381_BASE.to_montgomery(&INTEGER_FOUR),
+            );
 
-        // Compute y = sqrt(x^3 + 4)
-        let y_squared = BLS12_381_BASE.add(
-            BLS12_381_BASE.mont_cubic(&x),
-            &BLS12_381_BASE.to_montgomery(&INTEGER_FOUR),
-        );
+            let y_squared = BLS12_381_BASE.mont_sqrt(&y_squared);
 
-        let y_squared = BLS12_381_BASE.mont_sqrt(&y_squared);
+            if let Some(y) = y_squared {
+                let y = if flip_sign {
+                    Bls12_381BaseField::neg(y)
+                } else {
+                    y
+                };
 
-        if let Some(y) = y_squared {
-            let y = if flip_sign {
-                Bls12_381BaseField::neg(y)
-            } else {
-                y
-            };
+                // Create affine point
+                let point = G1Projective {
+                    x,
+                    y,
+                    z: Bls12_381BaseField::r().clone(),
+                };
 
-            // Create affine point
-            let point = G1Projective {
-                x,
-                y,
-                z: Bls12_381BaseField::r().clone(),
-            };
+                // clear cofactor
+                let proj_point = point.final_exponentiation_mont();
 
-            println!("========point: {:#}", point.from_montgomery());
-
-            // clear cofactor
-            let proj_point = point.final_exponentiation_mont();
-
-            // Ensure the generated point is not the point at infinity
-            if !proj_point.is_identity() {
-                return proj_point;
+                // Ensure the generated point is not the point at infinity
+                if !proj_point.is_identity() {
+                    return proj_point;
+                }
             }
         }
-
-        G1Projective::identity()
-        // }
     }
 }
 

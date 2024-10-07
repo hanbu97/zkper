@@ -7,6 +7,23 @@ use super::*;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Bls12_381BaseField(pub Integer);
 
+impl Bls12_381BaseField {
+    pub fn from_u64_hex_str_vec(hex_str_vec: &[&str]) -> Integer {
+        let u64_vec = hex_str_vec
+            .iter()
+            .map(|x| u64::from_str_radix(x.strip_prefix("0x").unwrap_or(x), 16).unwrap())
+            .collect::<Vec<_>>();
+
+        let value = Integer::from_digits::<u64>(&u64_vec, rug::integer::Order::Lsf);
+        value
+    }
+
+    pub fn from_u64_vec(u64_vec: &[u64]) -> Integer {
+        let value = Integer::from_digits::<u64>(u64_vec, rug::integer::Order::Lsf);
+        value
+    }
+}
+
 impl From<Integer> for Bls12_381BaseField {
     fn from(value: Integer) -> Self {
         Self(value)

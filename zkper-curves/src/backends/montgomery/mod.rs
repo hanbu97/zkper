@@ -7,10 +7,6 @@ use rug::Integer;
 use std::ops::Mul;
 use std::ops::Rem;
 
-use crate::curves::bls12_381::Bls12_381BaseField;
-use crate::curves::bls12_381::BLS12_381_BASE;
-use crate::traits::field::FieldTrait;
-
 pub trait MontgomeryExt {
     fn from_montgomery_backend(&self, backend: &MontgomeryBackend) -> Integer;
 }
@@ -91,8 +87,6 @@ impl MontgomeryBackend {
         let modulus_plus_one_div_four = if modulus.clone() % 4 != 3 {
             None
         } else {
-            let t: Integer = (modulus.clone() + 1) / 4;
-            println!("modulus_plus_one_div_four: {:#}", t.to_string_radix(16));
             Some((modulus.clone() + 1) / 4)
         };
 
