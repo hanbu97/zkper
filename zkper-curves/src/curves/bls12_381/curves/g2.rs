@@ -5,9 +5,13 @@ use rug::Integer;
 use zkper_base::rand::ZkperRng;
 
 use crate::{
-    backends::montgomery::INTEGER_FOUR,
+    backends::montgomery::{
+        INTEGER_EIGHT, INTEGER_FOUR, INTEGER_THREE, INTEGER_TWELVE, INTEGER_TWO,
+    },
     curves::bls12_381::{fields::fp2::Fp2, MILLER_LOOP_CONSTANT},
 };
+
+use super::g2_affine::G2Affine;
 
 lazy_static::lazy_static! {
     /// The generators of G1 and G2 are computed by finding the lexicographically smallest valid x-coordinate,
@@ -74,11 +78,50 @@ impl fmt::Display for G2Projective {
 }
 
 impl G2Projective {
+    pub fn to_mont(&self) -> G2Projective {
+        G2Projective {
+            x: self.x.to_mont(),
+            y: self.y.to_mont(),
+            z: self.z.to_mont(),
+        }
+    }
+
+    pub fn from_mont(&self) -> G2Projective {
+        G2Projective {
+            x: self.x.from_monterey(),
+            y: self.y.from_monterey(),
+            z: self.z.from_monterey(),
+        }
+    }
+
     pub fn identity() -> Self {
         Self {
             x: Fp2::zero(),
             y: Fp2::one(),
             z: Fp2::zero(),
+        }
+    }
+
+    pub fn is_identity(&self) -> bool {
+        self.z.is_zero()
+    }
+
+    pub fn normalize(&self) -> G2Affine {
+        if self.is_identity() {
+            return G2Affine::identity();
+        }
+
+        // Compute z_inv = 1/z
+        let z_inv = self.z.invert().expect("Z should be invertible");
+
+        // Compute x_norm = x * z_inv, y_norm = y * z_inv
+        let x_norm = self.x.mul(&z_inv);
+        let y_norm = self.y.mul(&z_inv);
+
+        G2Affine {
+            x: x_norm,
+            y: y_norm,
+            infinity: false,
         }
     }
 
@@ -95,6 +138,41 @@ impl G2Projective {
             x: G2_GENERATOR_X.clone(),
             y: G2_GENERATOR_Y.clone(),
             z: Fp2::one(),
+        }
+    }
+
+    /// Computes the doubling of this point.
+    /// ref: Algorithm 9, https://eprint.iacr.org/2015/1060.pdf
+    ///
+    /// Todo: test algorithm used in g1 projective
+    pub fn double(&self) -> Self {
+        if self.is_identity() {
+            return Self::identity();
+        }
+
+        let t0 = self.y.square();
+        let z3 = t0.clone().add(&t0);
+        let z3 = z3.double();
+        let z3 = z3.double();
+        let t1 = self.y.mul(&self.z);
+        let t2 = self.z.square();
+        let t2 = t2.mul_base(&INTEGER_TWELVE);
+        let x3 = t2.mul(&z3);
+        let y3 = t0.add(&t2);
+        let z3 = t1.mul(&z3);
+        let t1 = t2.double();
+        let t2 = t1.add(&t2);
+        let t0 = t0.sub(&t2);
+        let y3 = t0.mul(&y3);
+        let y3 = x3.add(&y3);
+        let t1 = self.x.mul(&self.y);
+        let x3 = t0.mul(&t1);
+        let x3 = x3.double();
+
+        Self {
+            x: x3,
+            y: y3,
+            z: z3,
         }
     }
 
@@ -153,6 +231,68 @@ impl G2Projective {
 
         Self::identity()
     }
+}
+
+#[test]
+fn test_double() {
+    let id = G2Projective::identity();
+    let t = id.double();
+    println!("t: {:#}", t);
+
+    let g = G2Projective::generator();
+    let t = g.double();
+    println!("t: {:#}", t);
+
+    let g2_affine_ref = G2Affine {
+        x: Fp2::from_u64_vec(
+            &[
+                0xe9d9_e2da_9620_f98b,
+                0x54f1_1993_46b9_7f36,
+                0x3db3_b820_376b_ed27,
+                0xcfdb_31c9_b0b6_4f4c,
+                0x41d7_c127_8635_4493,
+                0x0571_0794_c255_c064,
+            ],
+            &[
+                0xd6c1_d3ca_6ea0_d06e,
+                0xda0c_bd90_5595_489f,
+                0x4f53_52d4_3479_221d,
+                0x8ade_5d73_6f8c_97e0,
+                0x48cc_8433_925e_f70e,
+                0x08d7_ea71_ea91_ef81,
+            ],
+        ),
+        y: Fp2::from_u64_vec(
+            &[
+                0x15ba_26eb_4b0d_186f,
+                0x0d08_6d64_b7e9_e01e,
+                0xc8b8_48dd_652f_4c78,
+                0xeecf_46a6_123b_ae4f,
+                0x255e_8dd8_b6dc_812a,
+                0x1641_42af_21dc_f93f,
+            ],
+            &[
+                0xf9b4_a1a8_9598_4db4,
+                0xd417_b114_cccf_f748,
+                0x6856_301f_c89f_086e,
+                0x41c7_7787_8931_e3da,
+                0x3556_b155_066a_2105,
+                0x00ac_f7d3_25cb_89cf,
+            ],
+        ),
+        infinity: false,
+    };
+
+    let g2_affine = G2Affine::from(&t).to_montgomery();
+    assert_eq!(g2_affine, g2_affine_ref);
+
+    // let t_ref = G2Projective {
+    //     x: Fp2::from_hexs("0x0d0621aa460598a2ae95dc8773963bbef6937d711ee9ad39b894d74cf4eb2839affef27184a609b212871cb44b2b5768", "0x19b3389e245a6a0debaf8fcab87c9b6a752a861651901954d0c438c682f6a3133d6b7dc7643e0328af8649e21cc5abfd"),
+    //     y: Fp2::from_hexs("0x065ae9215806e8a55fd2d9ec4af9d2d448599cdb85d9080b2c9b4766434c33d103730c92c30a69d0602a8804c2a7c65f", "0x0e9c342d8a6d4b3a1cbd02c7bdc0e0aa304de41a04569ae33184419e66bbc0271c361c973962955ba6405f0e51beb98b"),
+    //     z: Fp2::from_hexs("0x14701735f9267b3559664f0bb6170c92f088db17a9af5a3d7fff70bf69e7fcc224e705e2f271e23dde0bc5c5af268cc8", "0x064a76d550996df129652183ad6335e04c940dfc143713673a7586fba1facf0c24536b224dd6b2963335595bb55c2865"),
+    // };
+    // let t = t_ref.normalize();
+    // println!("t: {:#}", t);
 }
 
 #[test]

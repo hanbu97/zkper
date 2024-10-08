@@ -1,15 +1,72 @@
+use std::fmt::{self, Display};
+
 use crate::curves::bls12_381::fields::fp2::Fp2;
 
-use super::g2::{G2_GENERATOR_X, G2_GENERATOR_Y};
+use super::g2::{G2Projective, G2_GENERATOR_X, G2_GENERATOR_Y};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct G2Affine {
     pub x: Fp2,
     pub y: Fp2,
     pub infinity: bool,
 }
 
+impl<'a> From<&'a G2Projective> for G2Affine {
+    fn from(p: &'a G2Projective) -> G2Affine {
+        let zinv = p.z.invert().unwrap_or(Fp2::zero());
+
+        if zinv.is_zero() {
+            return G2Affine::identity();
+        }
+
+        let x = p.x.mul(&zinv);
+        let y = p.y.mul(&zinv);
+
+        G2Affine {
+            x,
+            y,
+            infinity: false,
+        }
+    }
+}
+
+impl From<G2Projective> for G2Affine {
+    fn from(p: G2Projective) -> G2Affine {
+        G2Affine::from(&p)
+    }
+}
+
+impl Display for G2Affine {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if f.alternate() {
+            write!(
+                f,
+                "G2Affine {{\n    x: {},\n    y: {},\n    infinity: {}\n}}",
+                self.x, self.y, self.infinity
+            )
+        } else {
+            write!(f, "G2Affine({}, {}, {})", self.x, self.y, self.infinity)
+        }
+    }
+}
+
 impl G2Affine {
+    pub fn from_montgomery(p: &G2Affine) -> G2Affine {
+        G2Affine {
+            x: Fp2::from_monterey(&p.x),
+            y: Fp2::from_monterey(&p.y),
+            infinity: p.infinity,
+        }
+    }
+
+    pub fn to_montgomery(&self) -> G2Affine {
+        G2Affine {
+            x: Fp2::to_mont(&self.x),
+            y: Fp2::to_mont(&self.y),
+            infinity: self.infinity,
+        }
+    }
+
     /// Returns the identity of the group: the point at infinity.
     pub fn identity() -> Self {
         G2Affine {
@@ -17,6 +74,10 @@ impl G2Affine {
             y: Fp2::one(),
             infinity: true,
         }
+    }
+
+    pub fn is_identity(&self) -> bool {
+        self.infinity
     }
 
     /// Returns a fixed generator of the group.

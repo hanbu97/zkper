@@ -6,7 +6,7 @@ use super::base::Bls12_381BaseField;
 use num_traits::One;
 use num_traits::Pow;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Fp2 {
     pub c0: Integer, // Base field element c0
     pub c1: Integer, // Base field element c1
@@ -24,6 +24,13 @@ impl Display for Fp2 {
 }
 
 impl Fp2 {
+    pub fn from_hexs(c0: &str, c1: &str) -> Self {
+        let c0 = Integer::from_str_radix(c0.strip_prefix("0x").unwrap_or(c0), 16).unwrap();
+        let c1 = Integer::from_str_radix(c1.strip_prefix("0x").unwrap_or(c1), 16).unwrap();
+
+        Self { c0, c1 }
+    }
+
     pub fn from_integers(c0: Integer, c1: Integer) -> Self {
         Self { c0, c1 }
     }
@@ -102,6 +109,13 @@ impl Fp2 {
         }
     }
 
+    pub fn double(&self) -> Self {
+        Self {
+            c0: BLS12_381_BASE.add(self.c0.clone(), &self.c0),
+            c1: BLS12_381_BASE.add(self.c1.clone(), &self.c1),
+        }
+    }
+
     pub fn add_base(&self, rhs: &Integer) -> Self {
         Self {
             c0: BLS12_381_BASE.add(self.c0.clone(), rhs),
@@ -137,6 +151,16 @@ impl Fp2 {
         Self {
             c0: BLS12_381_BASE.sub(a0b0, &a1b1),
             c1: BLS12_381_BASE.add(a0b1, &a1b0),
+        }
+    }
+
+    pub fn mul_base(&self, base: &Integer) -> Self {
+        let a0b = BLS12_381_BASE.mul(self.c0.clone(), base);
+        let a1b = BLS12_381_BASE.mul(self.c1.clone(), base);
+
+        Self {
+            c0: BLS12_381_BASE.sub(a0b.clone(), &a1b),
+            c1: BLS12_381_BASE.add(a0b, &a1b),
         }
     }
 
