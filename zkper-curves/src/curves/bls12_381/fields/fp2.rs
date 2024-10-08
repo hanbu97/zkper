@@ -49,7 +49,7 @@ impl Fp2 {
         Self { c0, c1 }
     }
 
-    pub fn from_monterey(&self) -> Self {
+    pub fn from_mont(&self) -> Self {
         let c0 = BLS12_381_BASE.from_montgomery(&self.c0);
         let c1 = BLS12_381_BASE.from_montgomery(&self.c1);
 
@@ -364,7 +364,7 @@ mod tests {
             ],
         );
 
-        fp2.from_monterey()
+        fp2.from_mont()
     }
 
     fn gen_b() -> Fp2 {
@@ -387,7 +387,7 @@ mod tests {
             ],
         );
 
-        fp2.from_monterey()
+        fp2.from_mont()
     }
 
     fn gen_c() -> Fp2 {
@@ -410,7 +410,7 @@ mod tests {
             ],
         );
 
-        fp2.from_monterey()
+        fp2.from_mont()
     }
 
     #[test]
@@ -455,7 +455,7 @@ mod tests {
                 0x12c3_c3dd_84bc_a26d,
             ],
         )
-        .from_monterey();
+        .from_mont();
 
         assert_eq!(a.add(&b), c);
     }
@@ -483,7 +483,7 @@ mod tests {
                 0x0952_3b26_d0ad_19a4,
             ],
         )
-        .from_monterey();
+        .from_mont();
 
         assert_eq!(a.sub(&b), c);
     }
@@ -510,7 +510,7 @@ mod tests {
                 0x18f6_9b5d_2b8a_fbde,
             ],
         )
-        .from_monterey();
+        .from_mont();
 
         assert_eq!(a.neg(), b);
     }
@@ -535,7 +535,7 @@ mod tests {
                 0x1333_f55a_3572_5be0,
             ],
         )
-        .from_monterey();
+        .from_mont();
         let b = Fp2::from_u64_vec(
             &[
                 0x0581_a133_3d4f_48a6,
@@ -554,7 +554,7 @@ mod tests {
                 0x08e8_4f0c_b32c_d17d,
             ],
         )
-        .from_monterey();
+        .from_mont();
 
         assert!(a.invert().is_some());
         assert_eq!(a.invert().unwrap(), b);
@@ -599,7 +599,7 @@ mod tests {
                 0x0626_f03c_0489_b72d,
             ],
         )
-        .from_monterey();
+        .from_mont();
 
         assert_eq!(a.sqrt().unwrap().square(), a);
 

@@ -53,8 +53,8 @@ impl Display for G2Affine {
 impl G2Affine {
     pub fn from_montgomery(p: &G2Affine) -> G2Affine {
         G2Affine {
-            x: Fp2::from_monterey(&p.x),
-            y: Fp2::from_monterey(&p.y),
+            x: Fp2::from_mont(&p.x),
+            y: Fp2::from_mont(&p.y),
             infinity: p.infinity,
         }
     }

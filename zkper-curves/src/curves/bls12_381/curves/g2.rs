@@ -88,9 +88,9 @@ impl G2Projective {
 
     pub fn from_mont(&self) -> G2Projective {
         G2Projective {
-            x: self.x.from_monterey(),
-            y: self.y.from_monterey(),
-            z: self.z.from_monterey(),
+            x: self.x.from_mont(),
+            y: self.y.from_mont(),
+            z: self.z.from_mont(),
         }
     }
 
@@ -285,14 +285,6 @@ fn test_double() {
 
     let g2_affine = G2Affine::from(&t).to_montgomery();
     assert_eq!(g2_affine, g2_affine_ref);
-
-    // let t_ref = G2Projective {
-    //     x: Fp2::from_hexs("0x0d0621aa460598a2ae95dc8773963bbef6937d711ee9ad39b894d74cf4eb2839affef27184a609b212871cb44b2b5768", "0x19b3389e245a6a0debaf8fcab87c9b6a752a861651901954d0c438c682f6a3133d6b7dc7643e0328af8649e21cc5abfd"),
-    //     y: Fp2::from_hexs("0x065ae9215806e8a55fd2d9ec4af9d2d448599cdb85d9080b2c9b4766434c33d103730c92c30a69d0602a8804c2a7c65f", "0x0e9c342d8a6d4b3a1cbd02c7bdc0e0aa304de41a04569ae33184419e66bbc0271c361c973962955ba6405f0e51beb98b"),
-    //     z: Fp2::from_hexs("0x14701735f9267b3559664f0bb6170c92f088db17a9af5a3d7fff70bf69e7fcc224e705e2f271e23dde0bc5c5af268cc8", "0x064a76d550996df129652183ad6335e04c940dfc143713673a7586fba1facf0c24536b224dd6b2963335595bb55c2865"),
-    // };
-    // let t = t_ref.normalize();
-    // println!("t: {:#}", t);
 }
 
 #[test]
