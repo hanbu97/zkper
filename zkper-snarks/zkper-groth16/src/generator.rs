@@ -1,6 +1,10 @@
 use anyhow::Result;
+use rand::Rng;
 use rand::RngCore;
-use zkper_curves::curves::bls12_381::curves::g1::G1Projective;
+use zkper_curves::curves::bls12_381::{
+    curves::{g1::G1Projective, g2::G2Projective},
+    Bls12_381ScalarField,
+};
 
 use crate::circuit::Circuit;
 
@@ -11,14 +15,12 @@ pub fn generate_random_parameters<C: Circuit, R: RngCore>(
     mut rng: &mut R,
 ) -> Result<()> {
     let g1 = G1Projective::random_mont(&mut rng).from_montgomery();
-
-    println!("-----------{:#}", g1);
-    // let g2 = E::G2::random(&mut rng);
-    // let alpha = E::Fr::random(&mut rng);
-    // let beta = E::Fr::random(&mut rng);
-    // let gamma = E::Fr::random(&mut rng);
-    // let delta = E::Fr::random(&mut rng);
-    // let tau = E::Fr::random(&mut rng);
+    let g2 = G2Projective::random(&mut rng);
+    let alpha: Bls12_381ScalarField = rng.gen();
+    let beta: Bls12_381ScalarField = rng.gen();
+    let gamma: Bls12_381ScalarField = rng.gen();
+    let delta: Bls12_381ScalarField = rng.gen();
+    let tau: Bls12_381ScalarField = rng.gen();
 
     // generate_parameters::<E, C>(circuit, g1, g2, alpha, beta, gamma, delta, tau)
 
