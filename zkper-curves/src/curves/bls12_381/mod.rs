@@ -7,6 +7,7 @@ pub use fields::base::Bls12_381BaseField;
 pub use fields::scalar::Bls12_381ScalarField;
 
 /// This is equal to the frobenius trace of the BLS12 381 curve minus one or seed value z.
+/// x = -15132376222941642752
 pub const MILLER_LOOP_CONSTANT: u64 = 0xd201_0000_0001_0000;
 pub const MILLER_LOOP_CONSTANT_IS_NEG: bool = true;
 
@@ -114,5 +115,17 @@ mod tests {
         println!("base: {}", base.to_string_radix(16));
         let base_from_mont = BLS12_381_BASE.from_montgomery(&base);
         println!("base_from_mont: {}", base_from_mont.to_string_radix(16));
+    }
+
+    #[test]
+    fn test_miller_loop_constant() {
+        let constant = MILLER_LOOP_CONSTANT;
+        let constant_is_neg = MILLER_LOOP_CONSTANT_IS_NEG;
+
+        assert_eq!(constant, 15132376222941642752);
+        assert_eq!(constant_is_neg, true);
+
+        println!("constant: {}", constant);
+        println!("constant_is_neg: {}", constant_is_neg);
     }
 }

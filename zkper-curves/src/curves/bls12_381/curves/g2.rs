@@ -244,28 +244,48 @@ impl G2Projective {
         }
     }
 
-    // /// Multiply `self` by `MILLER_LOOP_CONSTANT`, using double and add.
-    // fn mul_by_x(&self) -> G2Projective {
-    //     let mut result = G2Projective::identity();
-    //     // Skip the first bit as it's always 1 for BLS12-381
-    //     let mut x = MILLER_LOOP_CONSTANT >> 1;
-    //     let mut acc = self.clone();
+    pub fn neg(&self) -> Self {
+        G2Projective {
+            x: self.x.clone(),
+            y: self.y.neg(),
+            z: self.z.clone(),
+        }
+    }
 
-    //     while x != 0 {
-    //         acc = acc.double();
-    //         if x % 2 == 1 {
-    //             result = result.add(&acc);
-    //         }
-    //         x >>= 1;
-    //     }
+    /// Multiply `self` by `MILLER_LOOP_CONSTANT`, using double and add.
+    pub fn mul_by_x(&self) -> G2Projective {
+        let mut result = G2Projective::identity();
+        // Skip the first bit as it's always 1 for BLS12-381
+        let mut x = MILLER_LOOP_CONSTANT >> 1;
+        let mut acc = self.clone();
 
-    //     // Apply the sign of x
-    //     if MILLER_LOOP_CONSTANT_IS_NEG {
-    //         result.neg()
-    //     } else {
-    //         result
-    //     }
-    // }
+        while x != 0 {
+            acc = acc.double();
+            if x % 2 == 1 {
+                result = result.add(&acc);
+            }
+            x >>= 1;
+        }
+
+        // Apply the sign of x
+        if MILLER_LOOP_CONSTANT_IS_NEG {
+            result.neg()
+        } else {
+            result
+        }
+    }
+
+    /// Clears the cofactor
+    ///
+    /// ref: Section 4.1, https://eprint.iacr.org/2017/419.pdf
+    /// [h(ψ)]P = [x^2 − x − 1]P + [x − 1]ψ(P) + (ψ^2)(2P)
+    pub fn clear_cofactor(&self) -> Self {
+        // [x]P
+        let x_p = self.mul_by_x();
+        // ψ(P)
+
+        self.mul_by_x()
+    }
 
     /// Returns a random element in G2
     pub fn random<R: RngCore>(rng: &mut R) -> Self {
