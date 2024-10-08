@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, ops::Sub};
 
 use rand::RngCore;
 use rug::Integer;
@@ -8,7 +8,9 @@ use crate::{
     backends::montgomery::{
         INTEGER_EIGHT, INTEGER_FOUR, INTEGER_THREE, INTEGER_TWELVE, INTEGER_TWO,
     },
-    curves::bls12_381::{fields::fp2::Fp2, MILLER_LOOP_CONSTANT, MILLER_LOOP_CONSTANT_IS_NEG},
+    curves::bls12_381::{
+        fields::fp2::Fp2, BLS12_381_BASE, MILLER_LOOP_CONSTANT, MILLER_LOOP_CONSTANT_IS_NEG,
+    },
 };
 
 use super::g2_affine::G2Affine;
@@ -44,6 +46,33 @@ lazy_static::lazy_static! {
         ).expect("failed to parse generator integer");
         let y = Fp2::from_integers(c0, c1);
         y
+    };
+
+
+    // PSI_X = 1/(u+1)^((p-1)/3)
+    pub static ref PSI_X: Fp2 = {
+        let c0 = Integer::ZERO;
+        let c1 = Integer::from_str_radix(
+            "4002409555221667392624310435006688643935503118305586438271171395842971157480381377015405980053539358417135540939437",
+            // "3216219264335650953089490096956247703352901229858663303777280467369712744216098189027420766571058176884680122779075", // montgomery form
+            10
+        ).expect("failed to parse PSI_X integer");
+        Fp2::from_integers(c0, c1)
+    };
+
+    // PSI_Y = 1/(u+1)^((p-1)/2)
+    pub static ref PSI_Y: Fp2 = {
+        let c0 = Integer::from_str_radix(
+            "2973677408986561043442465346520108879172042883009249989176415018091420807192182638567116318576472649347015917690530",
+            // "1821461487266245992767491788684378228087062278322214693001359809350238716280406307949636812899085786271837335624401", // montgomery form
+            10
+        ).expect("failed to parse PSI_Y integer");
+        let c1 = Integer::from_str_radix(
+            "1028732146235106349975324479215795277384839936929757896155643118032610843298655225875571310552543014690878354869257",
+            // "2180948067955421400650298037051525928469820541616793192330698326773792934210431556493050816229929877766056936935386", // montgomery form
+            10
+        ).expect("failed to parse PSI_Y integer");
+        Fp2::from_integers(c0, c1)
     };
 }
 
@@ -275,6 +304,18 @@ impl G2Projective {
         }
     }
 
+    /// psi(P) is the untwist-Frobenius-twist endomorhism on E'(Fq2)
+    pub fn psi(&self) -> Self {
+        let x = self.x.frobenius_map().mul(&PSI_X);
+        let y = self.y.frobenius_map().mul(&PSI_Y);
+
+        G2Projective {
+            x,
+            y,
+            z: self.z.frobenius_map(),
+        }
+    }
+
     /// Clears the cofactor
     ///
     /// ref: Section 4.1, https://eprint.iacr.org/2017/419.pdf
@@ -319,6 +360,200 @@ impl G2Projective {
 
         Self::identity()
     }
+}
+
+#[test]
+fn test_constants() {
+    // generator
+    let x = Fp2::from_u64_vec(
+        &[
+            0xf5f2_8fa2_0294_0a10,
+            0xb3f5_fb26_87b4_961a,
+            0xa1a8_93b5_3e2a_e580,
+            0x9894_999d_1a3c_aee9,
+            0x6f67_b763_1863_366b,
+            0x0581_9192_4350_bcd7,
+        ],
+        &[
+            0xa5a9_c075_9e23_f606,
+            0xaaa0_c59d_bccd_60c3,
+            0x3bb1_7e18_e286_7806,
+            0x1b1a_b6cc_8541_b367,
+            0xc2b6_ed0e_f215_8547,
+            0x1192_2a09_7360_edf3,
+        ],
+    )
+    .from_mont();
+    let y = Fp2::from_u64_vec(
+        &[
+            0x4c73_0af8_6049_4c4a,
+            0x597c_fa1f_5e36_9c5a,
+            0xe7e6_856c_aa0a_635a,
+            0xbbef_b5e9_6e0d_495f,
+            0x07d3_a975_f0ef_25a2,
+            0x0083_fd8e_7e80_dae5,
+        ],
+        &[
+            0xadc0_fc92_df64_b05d,
+            0x18aa_270a_2b14_61dc,
+            0x86ad_ac6a_3be4_eba0,
+            0x7949_5c4e_c93d_a33a,
+            0xe717_5850_a43c_caed,
+            0x0b2b_c2a1_63de_1bf2,
+        ],
+    )
+    .from_mont();
+
+    println!("x: {:#?}", x);
+    println!("y: {:#?}", y);
+
+    // psi
+    let x = Fp2::from_u64_vec(
+        &[0x0, 0x0, 0x0, 0x0, 0x0, 0x0],
+        &[
+            0x890dc9e4867545c3,
+            0x2af322533285a5d5,
+            0x50880866309b7e2c,
+            0xa20d1b8c7e881024,
+            0x14e4f04fe2db9068,
+            0x14e56d3f1564853a,
+        ],
+    );
+    let y = Fp2::from_u64_vec(
+        &[
+            0x3e2f585da55c9ad1,
+            0x4294213d86c18183,
+            0x382844c88b623732,
+            0x92ad2afd19103e18,
+            0x1d794e4fac7cf0b9,
+            0x0bd592fc7d825ec8,
+        ],
+        &[
+            0x7bcfa7a25aa30fda,
+            0xdc17dec12a927e7c,
+            0x2f088dd86b4ebef1,
+            0xd1ca2087da74d4a7,
+            0x2da2596696cebc1d,
+            0x0e2b7eedbbfd87d2,
+        ],
+    );
+
+    println!("x: {:#?}", x);
+    println!("y: {:#?}", y);
+}
+
+#[test]
+fn test_data() {
+    let t = Integer::from_str_radix(
+        "af1a7fc56184236542e9ea8aaee429f2c49e594dd28a0cdafadb45e0b4a849ebc0b9f92d58116334a96136ec2a3799e", 
+        16).unwrap();
+
+    println!("t: {}", t);
+
+    let strs = [
+        "3054832501414033752713421175100356960579864839953788141180488122996344243347615793538677763893755881582825825023813",
+        "1090990716801871460837383108298531578389141327576059912563358744658751389761339233924973897076837221322940070512638",
+        "1963319092744952524655310843727501542842482431934832846030328453882278847160654279719889170303247955592691423575345",
+        "3180527997915791343881185170211966186194817085031884644013500282019132278131528055492557858309333139360255476550951"   
+    ];
+    let hexs = strs
+        .into_iter()
+        .map(|s| Integer::from_str_radix(s, 10).unwrap().to_string_radix(16))
+        .collect::<Vec<String>>();
+
+    println!("hexs: {:#?}", hexs);
+}
+
+#[test]
+fn test_psi() {
+    // let g = G2Projective::generator();
+
+    let z = Fp2::from_u64_vec(
+        &[
+            0x0ef2ddffab187c0a,
+            0x2424522b7d5ecbfc,
+            0xc6f341a3398054f4,
+            0x5523ddf409502df0,
+            0xd55c0b5a88e0dd97,
+            0x066428d704923e52,
+        ],
+        &[
+            0x538bbe0c95b4878d,
+            0xad04a50379522881,
+            0x6d5c05bf5c12fb64,
+            0x4ce4a069a2d34787,
+            0x59ea6c8d0dffaeaf,
+            0x0d42a083a75bd6f3,
+        ],
+    )
+    .from_mont();
+
+    let point = G2Projective {
+        x: Fp2::from_u64_vec(
+            &[
+                0xee4c8cb7c047eaf2,
+                0x44ca22eee036b604,
+                0x33b3affb2aefe101,
+                0x15d3e45bbafaeb02,
+                0x7bfc2154cd7419a4,
+                0x0a2d0c2b756e5edc,
+            ],
+            &[
+                0xfc224361029a8777,
+                0x4cbf2baab8740924,
+                0xc5008c6ec6592c89,
+                0xecc2c57b472a9c2d,
+                0x8613eafd9d81ffb1,
+                0x10fe54daa2d3d495,
+            ],
+        )
+        .from_mont()
+        .mul(&z),
+        y: Fp2::from_u64_vec(
+            &[
+                0x7de7edc43953b75c,
+                0x58be1d2de35e87dc,
+                0x5731d30b0e337b40,
+                0xbe93b60cfeaae4c9,
+                0x8b22c203764bedca,
+                0x01616c8d1033b771,
+            ],
+            &[
+                0xea126fe476b5733b,
+                0x85cee68b5dae1652,
+                0x98247779f7272b04,
+                0xa649c8b468c6e808,
+                0xb5b9a62dff0c4e45,
+                0x1555b67fc7bbe73d,
+            ],
+        )
+        .from_mont(),
+        z: z.square().mul(&z),
+    };
+
+    println!("point: {:#}", point);
+
+    let point_psi = point.psi();
+    println!("point_psi: {:#}", point_psi);
+
+    let point_psi_ref = G2Projective {
+        x: Fp2::from_hexs("0x028d12205f3f90aeaa99b20ab214d9959e8511a4ca3d31ed9286a3aa0f26244008c42b2833d849c848850a58a95e3de0", "0x078e97a2d79e0aca781f3bebcac2368d8b0c83efa65e01a2d83635311f03a6b011ad5a3e456c68707de0be169ff868c1"),
+        y: Fp2::from_hexs("0x092dfbc26538d387e1fc9d8be2dc941a270151dce92bf8d15357d16f4f5ce55f78c9d2613207b1c22a9032e94b41dd01", "0x18bc79aecea296ea540ead5842b18fb7fac6bc1ea005ade90b2e51a1d06b24abddc3ad5b910cea7466d2aa4eb47a53ab"),
+        z: Fp2::from_hexs("0x09f4f08a58010cb973926f7a0fd533ce65a96ffbd83f16b8322a6a8015ebf3ddc7a9d1fd61c08fc7eb1681f703b031d5", "0x16b484190c1c7d7790b719c86fa37d460033d985342581453d566d13864bbb4681f2d729b606d0d990547be0c99fc491"),
+    };
+
+    println!("eq: {:#}", point_psi_ref == point_psi);
+
+    // let point_psi: G2Affine = point.psi().into();
+    // println!("point_psi: {:#?}", point_psi);
+
+    // println!("point: {:#?}", point);
+    // println!();
+    // println!("point_psi: {:#}", point.psi());
+    // println!();
+    // println!("g: {:#}", g);
+    // println!();
+    // println!("g_psi: {:#}", g.psi());
 }
 
 #[test]
@@ -428,4 +663,56 @@ fn test_g2_random() {
     let mut rng = ZkperRng::new_test();
     let g2 = G2Projective::random(&mut rng);
     // println!("g2: {:#?}", g2);
+}
+
+#[test]
+fn test_psi_constants() {
+    // currently not work
+
+    use num_traits::Pow;
+    let modulus = BLS12_381_BASE.modulus();
+    let x = Integer::from(MILLER_LOOP_CONSTANT);
+    pub const MILLER_LOOP_CONSTANT: u64 = 0xd201_0000_0001_0000;
+    let p_squared = modulus.clone().pow(2);
+
+    // Calculate (p-1)/3 and (p-1)/2
+    let p_minus_1_div_3 = (p_squared.clone().sub(Integer::ONE)).div_exact(INTEGER_THREE);
+    let p_minus_1_div_2 = (p_squared.clone().sub(Integer::ONE)).div_exact(INTEGER_TWO);
+
+    println!("p_minus_1_div_3: {:#?}", p_minus_1_div_3);
+    println!("p_minus_1_div_2: {:#?}", p_minus_1_div_2);
+
+    // Calculate x + 1
+    let x_plus_1: Integer = x.clone() + 1;
+
+    // PSI_CONSTANT_0 = 1/(x+1)^((p-1)/3) mod p
+    let psi_constant_0 = x_plus_1
+        .clone()
+        .pow_mod(&p_minus_1_div_3, &modulus)
+        .unwrap()
+        .invert(&modulus)
+        .unwrap();
+
+    // PSI_CONSTANT_1 = 1/(x+1)^((p-1)/2) mod p
+    let psi_constant_1 = x_plus_1
+        .clone()
+        .pow_mod(&p_minus_1_div_2, &modulus)
+        .unwrap()
+        .invert(&modulus)
+        .unwrap();
+
+    // DOUBLE_PSI_CONSTANT_0 = (x+1)^((1-p^2)/3) mod p
+    let one_minus_p_squared_div_3 = (Integer::from(1) - &p_squared) / 3;
+    let double_psi_constant_0 = x_plus_1
+        .pow_mod(&one_minus_p_squared_div_3, &modulus)
+        .unwrap();
+
+    // Convert to Fp2
+    let psi_constant_0_fp2 = Fp2::from_integers(Integer::from(0), psi_constant_0);
+    let psi_constant_1_fp2 = Fp2::from_integers(psi_constant_1, Integer::from(0));
+    let double_psi_constant_0_fp2 = Fp2::from_integers(double_psi_constant_0, Integer::from(0));
+
+    println!("psi_constant_0: {:#?}", psi_constant_0_fp2);
+    println!("psi_constant_1: {:#?}", psi_constant_1_fp2);
+    println!("double_psi_constant_0: {:#?}", double_psi_constant_0_fp2);
 }
