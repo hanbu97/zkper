@@ -4,7 +4,6 @@ use std::fmt::Display;
 
 use super::base::Bls12_381BaseField;
 use num_traits::One;
-use num_traits::Pow;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Fp2 {
@@ -317,23 +316,6 @@ mod tests {
         let q = q / 4;
 
         println!("q: {:#?}", q);
-
-        // let q_u64 = q
-        //     .to_digits::<u64>(rug::integer::Order::Lsf)
-        //     .into_iter()
-        //     .map(|x| format!("{:x}", x))
-        //     .collect::<Vec<_>>();
-        // println!("q: {:#?}", q_u64);
-
-        // // (q - 1) / 2
-        // let q: Integer = Integer::from(p2 - 1).div_rem(2.into()).0;
-        // let q_u64 = q
-        //     .to_digits::<u64>(rug::integer::Order::Lsf)
-        //     .into_iter()
-        //     .map(|x| format!("{:x}", x))
-        //     .collect::<Vec<_>>();
-
-        // println!("q: {:#?}", q_u64);
     }
 
     #[test]

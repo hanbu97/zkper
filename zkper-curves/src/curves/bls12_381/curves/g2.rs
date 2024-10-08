@@ -8,7 +8,7 @@ use crate::{
     backends::montgomery::{
         INTEGER_EIGHT, INTEGER_FOUR, INTEGER_THREE, INTEGER_TWELVE, INTEGER_TWO,
     },
-    curves::bls12_381::{fields::fp2::Fp2, MILLER_LOOP_CONSTANT},
+    curves::bls12_381::{fields::fp2::Fp2, MILLER_LOOP_CONSTANT, MILLER_LOOP_CONSTANT_IS_NEG},
 };
 
 use super::g2_affine::G2Affine;
@@ -54,6 +54,29 @@ pub struct G2Projective {
     pub y: Fp2,
     pub z: Fp2,
 }
+
+impl PartialEq for G2Projective {
+    fn eq(&self, other: &Self) -> bool {
+        // If both points are at infinity, they're equal
+        if self.is_identity() && other.is_identity() {
+            return true;
+        }
+
+        // If only one point is at infinity, they're not equal
+        if self.is_identity() || other.is_identity() {
+            return false;
+        }
+
+        // Compare x and y coordinates in the affine form
+        // (x1/z1 == x2/z2) && (y1/z1 == y2/z2)
+        // Cross-multiply to avoid division:
+        // (x1*z2 == x2*z1) && (y1*z2 == y2*z1)
+        (self.x.mul(&other.z) == other.x.mul(&self.z))
+            && (self.y.mul(&other.z) == other.y.mul(&self.z))
+    }
+}
+
+impl Eq for G2Projective {}
 
 impl fmt::Display for G2Projective {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -176,6 +199,51 @@ impl G2Projective {
         }
     }
 
+    /// Adds this point to another point.
+    ///
+    /// ref: Algorithm 7, https://eprint.iacr.org/2015/1060.pdf
+    pub fn add(&self, rhs: &Self) -> Self {
+        let t0 = self.x.mul(&rhs.x);
+        let t1 = self.y.mul(&rhs.y);
+        let t2 = self.z.mul(&rhs.z);
+        let t3 = self.x.add(&self.y);
+        let t4 = rhs.x.add(&rhs.y);
+        let t3 = t3.mul(&t4);
+        let t4 = t0.add(&t1);
+        let t3 = t3.sub(&t4);
+        let t4 = self.y.add(&self.z);
+        let x3 = rhs.y.add(&rhs.z);
+        let t4 = t4.mul(&x3);
+        let x3 = t1.add(&t2);
+        let t4 = t4.sub(&x3);
+        let x3 = self.x.add(&self.z);
+        let y3 = rhs.x.add(&rhs.z);
+        let x3 = x3.mul(&y3);
+        let y3 = t0.add(&t2);
+        let y3 = x3.sub(&y3);
+        let x3 = t0.double();
+        let t0 = x3.add(&t0);
+        let t2 = t2.mul_base(&INTEGER_TWELVE);
+        let z3 = t1.add(&t2);
+        let t1 = t1.sub(&t2);
+        let y3 = y3.mul_base(&INTEGER_TWELVE);
+        let x3 = t4.mul(&y3);
+        let t2 = t3.mul(&t1);
+        let x3 = t2.sub(&x3);
+        let y3 = y3.mul(&t0);
+        let t1 = t1.mul(&z3);
+        let y3 = t1.add(&y3);
+        let t0 = t0.mul(&t3);
+        let z3 = z3.mul(&t4);
+        let z3 = z3.add(&t0);
+
+        G2Projective {
+            x: x3,
+            y: y3,
+            z: z3,
+        }
+    }
+
     // /// Multiply `self` by `MILLER_LOOP_CONSTANT`, using double and add.
     // fn mul_by_x(&self) -> G2Projective {
     //     let mut result = G2Projective::identity();
@@ -231,6 +299,48 @@ impl G2Projective {
 
         Self::identity()
     }
+}
+
+#[test]
+fn test_add() {
+    let a = G2Projective::identity();
+    let b = G2Projective::identity();
+    let c = a.add(&b);
+
+    assert!(c.is_identity());
+
+    // println!("c: {:#}", c);
+    let b = G2Projective::generator();
+    let z = Fp2::from_u64_vec(
+        &[
+            0xba7a_fa1f_9a6f_e250,
+            0xfa0f_5b59_5eaf_e731,
+            0x3bdc_4776_94c3_06e7,
+            0x2149_be4b_3949_fa24,
+            0x64aa_6e06_49b2_078c,
+            0x12b1_08ac_3364_3c3e,
+        ],
+        &[
+            0x1253_25df_3d35_b5a8,
+            0xdc46_9ef5_555d_7fe3,
+            0x02d7_16d2_4431_06a9,
+            0x05a1_db59_a6ff_37d0,
+            0x7cf7_784e_5300_bb8f,
+            0x16a8_8922_c7a5_e844,
+        ],
+    )
+    .from_mont();
+
+    let b = G2Projective {
+        x: b.x.mul(&z),
+        y: b.y.mul(&z),
+        z,
+    };
+
+    let c = a.add(&b);
+    println!("c: {:#}", c);
+
+    assert_eq!(c, b);
 }
 
 #[test]
