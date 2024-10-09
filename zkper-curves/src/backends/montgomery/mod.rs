@@ -41,6 +41,12 @@ pub const INTEGER_FOUR: &'static Integer = {
     BorrowInteger::const_deref(&BORROW)
 };
 
+pub const INTEGER_SEVEN: &'static Integer = {
+    const MINI: MiniInteger = MiniInteger::const_from_u8(7);
+    const BORROW: BorrowInteger = MINI.borrow();
+    BorrowInteger::const_deref(&BORROW)
+};
+
 pub const INTEGER_EIGHT: &'static Integer = {
     const MINI: MiniInteger = MiniInteger::const_from_u8(8);
     const BORROW: BorrowInteger = MINI.borrow();

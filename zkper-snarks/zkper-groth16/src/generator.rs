@@ -11,6 +11,7 @@ use crate::circuit::Circuit;
 use crate::constraints::linear_combination::LinearCombination;
 use crate::constraints::ConstraintSystem;
 use crate::constraints::Variable;
+use crate::evaluation_domain::EvaluationDomain;
 
 pub struct ToxicWaste {
     pub alpha: Bls12_381ScalarField,
@@ -58,6 +59,9 @@ pub fn generate_random_parameters<C: Circuit, R: RngCore>(
 
     // Create bases for blind evaluation of polynomials at tau
     let powers_of_tau = vec![Integer::ZERO; cs.num_constraints];
+    let mut powers_of_tau = EvaluationDomain::new(powers_of_tau)?;
+
+    // Compute G1 window table
 
     Ok(())
 }

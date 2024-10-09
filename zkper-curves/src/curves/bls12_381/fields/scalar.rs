@@ -1,7 +1,8 @@
-use zkper_base::math::factorization::primitive_root;
+use scalar::base::Bls12_381BaseField;
+use zkper_base::math::{factorization::primitive_root, factorization_opt::find_generator};
 
 use super::*;
-use crate::curves::bls12_381::BLS12_381_SCALAR;
+use crate::{backends::montgomery::INTEGER_SEVEN, curves::bls12_381::BLS12_381_SCALAR};
 use std::str::FromStr;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -9,7 +10,7 @@ pub struct Bls12_381ScalarField(pub Integer);
 
 lazy_static::lazy_static! {
     /// 2^s root of unity computed by GENERATOR^t
-    pub static ref TWO_ADIC_ROOT_OF_UNITY: Integer = Integer::from_str(
+    static ref TWO_ADIC_ROOT_OF_UNITY: Integer = Integer::from_str(
         "10238227357739495823651030575849232062558860180284477541189508159991286009131",
     )
     .unwrap();
@@ -17,27 +18,27 @@ lazy_static::lazy_static! {
 
 #[test]
 fn test_two_adic_root_of_unity() {
-    // let modulus = Bls12_381ScalarField::modulus();
-    let modulus = Integer::from_str(
-        "52435875175126190479447",
-        // "52435875175126190479447740508185965837690552500527637822603658699938581184513",
-    )
-    .unwrap();
-    println!("modulus: {}", modulus.to_string_radix(10)); // 52435875175126190479447740508185965837690552500527637822603658699938581184513
+    let modulus = Bls12_381ScalarField::modulus();
 
-    // // Calculate two-adicity
-    // // find_one() Returns the location of the first one, starting at `start`. If the bit
-    // // at location `start` is one, returns `start`.
-    // let two_adicity = (modulus.clone() - Integer::ONE).find_one(0).unwrap();
-    // println!("two_adicity: {}", two_adicity); // 32
+    let generator = find_generator(&modulus);
+    println!("Generator: {}", generator); // 7
 
-    // // Calculate trace
-    // let trace = (modulus.clone() - 1) >> two_adicity;
+    let two_adicity = (modulus.clone() - Integer::ONE).find_one(0).unwrap();
+    println!("Two-adicity: {}", two_adicity); // 32
 
-    // Find generator using the primitive_root function
-    // very slow, but works
-    let (generator, factors) = primitive_root(&modulus, None).unwrap();
-    println!("Generator: {}", generator);
+    let trace = (modulus.clone() - 1) >> two_adicity;
+    let two_adic_root_of_unity = generator.pow_mod(&trace, &modulus).unwrap();
+    println!("2-adic Root of Unity: {}", two_adic_root_of_unity); // 10238227357739495823651030575849232062558860180284477541189508159991286009131
+
+    println!(
+        "MULTIPLICATIVE_GENERATOR: {}",
+        Bls12_381ScalarField::MULTIPLICATIVE_GENERATOR
+    );
+    println!("TWO_ADICITY: {}", Bls12_381ScalarField::TWO_ADICITY);
+    println!(
+        "TWO_ADIC_ROOT_OF_UNITY: {}",
+        Bls12_381ScalarField::two_adic_root_of_unity()
+    );
 }
 
 impl Bls12_381ScalarField {
@@ -45,6 +46,8 @@ impl Bls12_381ScalarField {
     /// Then `TWO_ADICITY` is the two-adicity of `N`, i.e. the integer `s`
     /// such that `N = 2^s * t` for some odd integer `t`.
     pub const TWO_ADICITY: u32 = 32;
+
+    pub const MULTIPLICATIVE_GENERATOR: &'static Integer = INTEGER_SEVEN;
 
     pub fn two_adic_root_of_unity() -> Integer {
         TWO_ADIC_ROOT_OF_UNITY.clone()

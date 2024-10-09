@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::curves::bls12_381::BLS12_381_BASE;
 
 use super::*;
