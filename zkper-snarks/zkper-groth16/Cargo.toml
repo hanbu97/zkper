@@ -12,3 +12,6 @@ anyhow.workspace = true
 rug = { workspace = true, features = ["integer", "num-traits"] }
 
 rand.workspace = true
+
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true

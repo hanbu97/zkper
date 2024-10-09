@@ -1,13 +1,16 @@
 use anyhow::Result;
 use rand::Rng;
 use rand::RngCore;
+use rug::Integer;
 use zkper_curves::curves::bls12_381::{
     curves::{g1::G1Projective, g2::G2Projective},
     Bls12_381ScalarField,
 };
 
 use crate::circuit::Circuit;
+use crate::constraints::linear_combination::LinearCombination;
 use crate::constraints::ConstraintSystem;
+use crate::constraints::Variable;
 
 pub struct ToxicWaste {
     pub alpha: Bls12_381ScalarField,
@@ -41,7 +44,20 @@ pub fn generate_random_parameters<C: Circuit, R: RngCore>(
 
     let mut cs = ConstraintSystem::new();
 
+    // Synthesize the circuit.
     circuit.synthesize(&mut cs)?;
+
+    // Input constraints to ensure full density of IC query
+    // x * 0 = 0
+    for i in 0..cs.num_public_inputs {
+        let a = LinearCombination::new_variable(Variable::Public(i));
+        let b = LinearCombination::zero();
+        let c = LinearCombination::zero();
+        cs.enforce_constraint(a, b, c);
+    }
+
+    // Create bases for blind evaluation of polynomials at tau
+    let powers_of_tau = vec![Integer::ZERO; cs.num_constraints];
 
     Ok(())
 }

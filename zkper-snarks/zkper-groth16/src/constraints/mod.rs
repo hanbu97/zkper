@@ -1,6 +1,8 @@
 use rug::Integer;
 use zkper_curves::curves::bls12_381::Bls12_381ScalarField;
 
+use self::linear_combination::LinearCombination;
+
 pub mod linear_combination;
 pub mod namespace;
 
@@ -24,13 +26,13 @@ pub struct ConstraintSystem {
     /// Number of constraints in the constraint system.
     pub num_constraints: usize,
 
-    pub at_public: Vec<Vec<(Bls12_381ScalarField, usize)>>,
-    pub bt_public: Vec<Vec<(Bls12_381ScalarField, usize)>>,
-    pub ct_public: Vec<Vec<(Bls12_381ScalarField, usize)>>,
+    pub at_public: Vec<Vec<(Integer, usize)>>,
+    pub bt_public: Vec<Vec<(Integer, usize)>>,
+    pub ct_public: Vec<Vec<(Integer, usize)>>,
 
-    pub at_private: Vec<Vec<(Bls12_381ScalarField, usize)>>,
-    pub bt_private: Vec<Vec<(Bls12_381ScalarField, usize)>>,
-    pub ct_private: Vec<Vec<(Bls12_381ScalarField, usize)>>,
+    pub at_private: Vec<Vec<(Integer, usize)>>,
+    pub bt_private: Vec<Vec<(Integer, usize)>>,
+    pub ct_private: Vec<Vec<(Integer, usize)>>,
 }
 
 impl ConstraintSystem {
@@ -78,21 +80,49 @@ impl ConstraintSystem {
         Ok(Variable::Public(current))
     }
 
-    // fn eval(
-    //     l: LinearCombination<Scalar>,
-    //     inputs: &mut [Vec<(Scalar, usize)>],
-    //     aux: &mut [Vec<(Scalar, usize)>],
-    //     this_constraint: usize,
-    // ) {
-    //     for (index, coeff) in l.as_ref() {
-    //         match index.get_unchecked() {
-    //             Index::Input(id) => inputs[id].push((*coeff, this_constraint)),
-    //             Index::Aux(id) => aux[id].push((*coeff, this_constraint)),
-    //         }
-    //     }
-    // }
+    fn eval(
+        linear_combination: LinearCombination,
+        public_variables: &mut [Vec<(Integer, usize)>],
+        private_variables: &mut [Vec<(Integer, usize)>],
+        this_constraint: usize,
+    ) {
+        for (index, coeff) in &linear_combination.0 {
+            match index {
+                &Variable::Public(id) => {
+                    public_variables[id].push((coeff.clone(), this_constraint))
+                }
+                &Variable::Private(id) => {
+                    private_variables[id].push((coeff.clone(), this_constraint))
+                }
+            }
+        }
+    }
 
-    pub fn enforce_constraint() {
-        unimplemented!()
+    pub fn enforce_constraint(
+        &mut self,
+        a: LinearCombination,
+        b: LinearCombination,
+        c: LinearCombination,
+    ) {
+        Self::eval(
+            a,
+            &mut self.at_public,
+            &mut self.at_private,
+            self.num_constraints,
+        );
+        Self::eval(
+            b,
+            &mut self.bt_public,
+            &mut self.bt_private,
+            self.num_constraints,
+        );
+        Self::eval(
+            c,
+            &mut self.ct_public,
+            &mut self.ct_private,
+            self.num_constraints,
+        );
+
+        self.num_constraints += 1;
     }
 }

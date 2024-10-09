@@ -427,6 +427,8 @@ dependencies = [
  "anyhow",
  "rand",
  "rug",
+ "serde",
+ "serde_json",
  "zkper-base",
  "zkper-curves",
 ]

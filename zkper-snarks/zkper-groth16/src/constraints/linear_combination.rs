@@ -14,6 +14,10 @@ impl LinearCombination {
         LinearCombination(Vec::new())
     }
 
+    pub fn new_variable(var: Variable) -> Self {
+        LinearCombination(vec![(var, Integer::from(1))])
+    }
+
     pub fn add(mut self, coeff_var: (Variable, Integer)) -> Self {
         self.0.push(coeff_var);
         self
@@ -25,12 +29,12 @@ impl LinearCombination {
         self
     }
 
-    pub fn add_one(mut self, var: Variable) -> Self {
+    pub fn add_variable(mut self, var: Variable) -> Self {
         self.0.push((var, Integer::from(1)));
         self
     }
 
-    pub fn sub_one(self, var: Variable) -> Self {
+    pub fn sub_variable(self, var: Variable) -> Self {
         self.sub((var, Integer::from(1)))
     }
 
