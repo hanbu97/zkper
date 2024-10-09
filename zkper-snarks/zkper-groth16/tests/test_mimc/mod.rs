@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use rug::Integer;
 use zkper_curves::curves::bls12_381::BLS12_381_SCALAR;
 use zkper_groth16::{

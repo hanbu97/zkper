@@ -1,5 +1,3 @@
-use std::net::Incoming;
-
 use crate::curves::bls12_381::BLS12_381_BASE;
 
 use super::*;

@@ -1,5 +1,7 @@
+use std::str::FromStr;
+
 use rug::Integer;
-use zkper_curves::curves::bls12_381::Bls12_381ScalarField;
+use zkper_curves::curves::bls12_381::{Bls12_381ScalarField, BLS12_381_SCALAR};
 
 use self::linear_combination::LinearCombination;
 
@@ -125,4 +127,38 @@ impl ConstraintSystem {
 
         self.num_constraints += 1;
     }
+}
+
+#[test]
+fn test_hex() {
+    // let t = Integer::from_str("2ab00961a08a499d84dd396c349d9b3cc5e433d6fa78eb2b54cc39d9bb30bbb7")
+    //     .unwrap();
+    // println!("{}", t.to_string_radix(16));
+
+    // let t = Integer::from_str_radix(
+    //     "2ab00961a08a499d84dd396c349d9b3cc5e433d6fa78eb2b54cc39d9bb30bbb7",
+    //     16,
+    // )
+    // .unwrap();
+
+    // let t = BLS12_381_SCALAR.to_montgomery(&t);
+
+    // println!("{}", t.to_string_radix(16));
+
+    let t = Integer::from_str_radix(
+        "16a2a19edfe81f20d09b681922c813b4b63683508c2280b93829971f439f0d2b",
+        16,
+    )
+    .unwrap();
+    println!("{}", t.to_string_radix(16));
+    let t = BLS12_381_SCALAR.from_montgomery(&t);
+
+    println!("{}", t.to_string_radix(16));
+
+    let t = Integer::from_str(
+        "10238227357739495823651030575849232062558860180284477541189508159991286009131",
+    )
+    .unwrap();
+
+    println!("{}", t.to_string_radix(16));
 }

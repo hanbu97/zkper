@@ -17,6 +17,7 @@ zkper-base = { path = "zkper-base" }
 zkper-curves = { path = "zkper-curves" }
 
 anyhow = { version = "1.0.89", features = ["backtrace"] }
+thiserror = "1.0.64"
 
 lazy_static = "1.5.0"
 
@@ -30,6 +31,10 @@ num-traits = "0.2.19"
 serde = "1.0.210"
 serde_json = "1.0.128"
 
+primal = "0.3.3"
+
 [dependencies]
 rug = { workspace = true, features = ["integer", "num-traits"] }
 lazy_static.workspace = true
+num-traits.workspace = true
+thiserror.workspace = true
