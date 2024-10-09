@@ -7,6 +7,27 @@ use zkper_curves::curves::bls12_381::{
 };
 
 use crate::circuit::Circuit;
+use crate::constraints::ConstraintSystem;
+
+pub struct ToxicWaste {
+    pub alpha: Bls12_381ScalarField,
+    pub beta: Bls12_381ScalarField,
+    pub gamma: Bls12_381ScalarField,
+    pub delta: Bls12_381ScalarField,
+    pub tau: Bls12_381ScalarField,
+}
+
+impl ToxicWaste {
+    pub fn sample<R: RngCore>(rng: &mut R) -> Self {
+        Self {
+            tau: rng.gen(),
+            alpha: rng.gen(),
+            beta: rng.gen(),
+            gamma: rng.gen(),
+            delta: rng.gen(),
+        }
+    }
+}
 
 /// Generates a random common reference string for
 /// a circuit.
@@ -16,13 +37,11 @@ pub fn generate_random_parameters<C: Circuit, R: RngCore>(
 ) -> Result<()> {
     let g1 = G1Projective::random_mont(&mut rng).from_montgomery();
     let g2 = G2Projective::random(&mut rng);
-    let alpha: Bls12_381ScalarField = rng.gen();
-    let beta: Bls12_381ScalarField = rng.gen();
-    let gamma: Bls12_381ScalarField = rng.gen();
-    let delta: Bls12_381ScalarField = rng.gen();
-    let tau: Bls12_381ScalarField = rng.gen();
+    let toxic_waste = ToxicWaste::sample(&mut rng);
 
-    // generate_parameters::<E, C>(circuit, g1, g2, alpha, beta, gamma, delta, tau)
+    let mut cs = ConstraintSystem::new();
+
+    circuit.synthesize(&mut cs)?;
 
     Ok(())
 }
