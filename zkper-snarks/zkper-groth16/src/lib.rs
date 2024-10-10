@@ -4,3 +4,4 @@ pub mod evaluation_domain;
 pub mod generator;
 pub mod models;
 pub mod verifier;
+pub mod pairing;

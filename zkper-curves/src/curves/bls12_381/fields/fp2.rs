@@ -1,6 +1,6 @@
 use crate::{curves::bls12_381::BLS12_381_BASE, traits::field::FieldTrait};
 use rug::Integer;
-use std::fmt::Display;
+use std::{fmt::Display, str::FromStr};
 
 use super::base::Bls12_381BaseField;
 use num_traits::One;
@@ -23,6 +23,13 @@ impl Display for Fp2 {
 }
 
 impl Fp2 {
+    pub fn from_strs(c0: &str, c1: &str) -> Self {
+        let c0 = Integer::from_str(c0).unwrap();
+        let c1 = Integer::from_str(c1).unwrap();
+
+        Self { c0, c1 }
+    }
+
     pub fn from_hexs(c0: &str, c1: &str) -> Self {
         let c0 = Integer::from_str_radix(c0.strip_prefix("0x").unwrap_or(c0), 16).unwrap();
         let c1 = Integer::from_str_radix(c1.strip_prefix("0x").unwrap_or(c1), 16).unwrap();
@@ -84,6 +91,18 @@ impl Fp2 {
         Self {
             c0: Bls12_381BaseField::random(rng),
             c1: Bls12_381BaseField::random(rng),
+        }
+    }
+
+    pub fn mul_by_nonresidue(&self) -> Fp2 {
+        // Multiply a + bu by u + 1, getting
+        // au + a + bu^2 + bu
+        // and because u^2 = -1, we get
+        // (a - b) + (a + b)u
+
+        Fp2 {
+            c0: BLS12_381_BASE.sub(self.c0.clone(), &self.c1),
+            c1: BLS12_381_BASE.add(self.c0.clone(), &self.c1),
         }
     }
 
