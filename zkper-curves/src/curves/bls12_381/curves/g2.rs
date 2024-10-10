@@ -135,6 +135,10 @@ impl fmt::Display for G2Projective {
 }
 
 impl G2Projective {
+    pub fn to_affine(&self) -> G2Affine {
+        self.normalize()
+    }
+
     pub fn to_mont(&self) -> G2Projective {
         G2Projective {
             x: self.x.to_mont(),
@@ -288,6 +292,27 @@ impl G2Projective {
 
     pub fn sub(&self, rhs: &Self) -> Self {
         self.add(&rhs.neg())
+    }
+
+    /// Scalar multiplication of a G1Projective point
+    pub fn mul_scalar(&self, scalar: &Integer) -> Self {
+        if scalar.is_zero() {
+            return G2Projective::identity();
+        }
+
+        let mut result = G2Projective::identity();
+        let mut temp = self.clone();
+        let mut scalar_bits = scalar.clone();
+
+        while !scalar_bits.is_zero() {
+            if scalar_bits.is_odd() {
+                result = result.add(&temp);
+            }
+            temp = temp.double();
+            scalar_bits >>= 1;
+        }
+
+        result
     }
 
     /// Multiply `self` by `MILLER_LOOP_CONSTANT`, using double and add.

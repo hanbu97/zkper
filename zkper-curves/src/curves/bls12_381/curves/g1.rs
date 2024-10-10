@@ -82,6 +82,10 @@ impl G1Projective {
         (self.x.clone(), self.y.clone(), self.z.clone())
     }
 
+    pub fn to_affine(&self) -> G1Affine {
+        self.into()
+    }
+
     pub fn from_str_hex(x: &str, y: &str, z: &str) -> Self {
         Self {
             x: Integer::from_str_radix(x.strip_prefix("0x").unwrap_or(x), 16).unwrap(),
