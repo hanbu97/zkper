@@ -86,6 +86,19 @@ impl Fp12 {
         Fp12 { c0, c1 }
     }
 
+    /// opt mul only c0, c1, c4
+    pub fn mul_by_c0_c1_c4(&self, c0: &Fp2, c1: &Fp2, c4: &Fp2) -> Fp12 {
+        let aa = self.c0.mul_by_c0_c1(c0, c1);
+        let bb = self.c1.mul_by_c1(c4);
+        let o = c1.add(c4);
+        let c1 = self.c1.add(&self.c0);
+        let c1 = c1.mul_by_c0_c1(c0, &o);
+        let c1 = c1.sub(&aa).sub(&bb);
+        let c0 = bb.mul_by_nonresidue().add(&aa);
+
+        Fp12 { c0, c1 }
+    }
+
     /// Adds two Fp12 elements.
     pub fn add(&self, other: &Fp12) -> Fp12 {
         Fp12 {

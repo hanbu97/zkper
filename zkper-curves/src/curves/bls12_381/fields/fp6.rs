@@ -119,6 +119,31 @@ impl Fp6 {
         }
     }
 
+    /// opt multiple without c2
+    pub fn mul_by_c0_c1(&self, c0: &Fp2, c1: &Fp2) -> Self {
+        let a_a = self.c0.mul(&c0);
+        let b_b = self.c1.mul(&c1);
+
+        let t1 = self.c2.mul(&c1).mul_by_nonresidue().add(&a_a);
+        let t2 = c0.add(&c1).mul(&self.c0.add(&self.c1)).sub(&a_a).sub(&b_b);
+        let t3 = self.c2.mul(&c0).add(&b_b);
+
+        Fp6 {
+            c0: t1,
+            c1: t2,
+            c2: t3,
+        }
+    }
+
+    /// opt multiple with c1
+    pub fn mul_by_c1(&self, c1: &Fp2) -> Self {
+        Fp6 {
+            c0: self.c2.mul(&c1).mul_by_nonresidue(),
+            c1: self.c0.mul(&c1),
+            c2: self.c1.mul(&c1),
+        }
+    }
+
     /// Multiply by quadratic nonresidue v.
     pub fn mul_by_nonresidue(&self) -> Self {
         // Given a + bv + cv^2, this produces
