@@ -2,6 +2,7 @@ use crate::backends::montgomery::MontgomeryBackend;
 
 pub mod curves;
 pub mod fields;
+pub mod paring;
 
 pub use fields::base::Bls12_381BaseField;
 pub use fields::scalar::Bls12_381ScalarField;

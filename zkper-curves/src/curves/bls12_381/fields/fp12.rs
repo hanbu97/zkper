@@ -51,6 +51,10 @@ impl Fp12 {
         }
     }
 
+    pub fn is_one(&self) -> bool {
+        self.c0.is_one() && self.c1.is_zero()
+    }
+
     /// Generates a random element of Fp12.
     pub fn random<R: rand::RngCore>(rng: &mut R) -> Self {
         Fp12 {

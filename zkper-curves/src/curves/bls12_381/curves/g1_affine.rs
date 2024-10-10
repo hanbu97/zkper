@@ -1,4 +1,4 @@
-use self::g1::G1Projective;
+use self::g1::{G1Projective, G1_GENERATOR_X, G1_GENERATOR_Y};
 
 use super::*;
 
@@ -7,6 +7,32 @@ pub struct G1Affine {
     pub x: Integer,
     pub y: Integer,
     pub infinity: bool,
+}
+
+impl G1Affine {
+    pub fn generator() -> Self {
+        Self {
+            x: G1_GENERATOR_X.clone(),
+            y: G1_GENERATOR_Y.clone(),
+            infinity: false,
+        }
+    }
+
+    /// Returns true if this point is the point at infinity.
+    #[inline]
+    pub fn is_identity(&self) -> bool {
+        self.infinity
+    }
+
+    /// Returns the identity element (point at infinity).
+    #[inline]
+    pub fn identity() -> Self {
+        G1Affine {
+            x: Bls12_381BaseField::zero(),
+            y: Bls12_381BaseField::one(),
+            infinity: true,
+        }
+    }
 }
 
 impl<'a> From<&'a G1Projective> for G1Affine {
@@ -39,7 +65,9 @@ impl fmt::Display for G1Affine {
             write!(
                 f,
                 "G1Affine {{\n    x: {},\n    y: {},\n    infinity: {}\n}}",
-                self.x, self.y, self.infinity
+                self.x.to_string_radix(16),
+                self.y.to_string_radix(16),
+                self.infinity
             )
         } else {
             write!(f, "G1Affine({}, {}, {})", self.x, self.y, self.infinity)
@@ -55,23 +83,5 @@ impl G1Affine {
     /// to G1Projective
     pub fn to_curve(&self) -> G1Projective {
         self.into()
-    }
-}
-
-impl G1Affine {
-    /// Returns true if this point is the point at infinity.
-    #[inline]
-    pub fn is_identity(&self) -> bool {
-        self.infinity
-    }
-
-    /// Returns the identity element (point at infinity).
-    #[inline]
-    pub fn identity() -> Self {
-        G1Affine {
-            x: Bls12_381BaseField::zero(),
-            y: Bls12_381BaseField::one(),
-            infinity: true,
-        }
     }
 }

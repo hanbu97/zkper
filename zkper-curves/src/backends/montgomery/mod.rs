@@ -276,6 +276,11 @@ impl MontgomeryBackend {
         }
     }
 
+    /// Reduces the given value modulo the field's modulus
+    pub fn reduce(&self, value: &Integer) -> Integer {
+        self.new_element(value.clone())
+    }
+
     /// Squares this element.
     pub fn square(&self, a: Integer) -> Integer {
         a.clone() * a % &self.modulus

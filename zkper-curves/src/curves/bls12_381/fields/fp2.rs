@@ -83,6 +83,10 @@ impl Fp2 {
         }
     }
 
+    pub fn is_one(&self) -> bool {
+        self.c0.is_one() && self.c1.is_zero()
+    }
+
     pub fn is_zero(&self) -> bool {
         self.c0.is_zero() && self.c1.is_zero()
     }
@@ -179,6 +183,28 @@ impl Fp2 {
         Self {
             c0: BLS12_381_BASE.sub(a0b.clone(), &a1b),
             c1: BLS12_381_BASE.add(a0b, &a1b),
+        }
+    }
+
+    pub fn normalize(&self) -> Self {
+        // make sure both c0 and c1 are in the base field
+        Self {
+            c0: BLS12_381_BASE.reduce(&self.c0),
+            c1: BLS12_381_BASE.reduce(&self.c1),
+        }
+    }
+
+    pub fn mul_by_base(&self, fp: &Integer) -> Self {
+        Self {
+            c0: BLS12_381_BASE.mul(self.c0.clone(), fp),
+            c1: BLS12_381_BASE.mul(self.c1.clone(), fp),
+        }
+    }
+
+    pub fn from_base(fp: &Integer) -> Self {
+        Self {
+            c0: fp.clone(),
+            c1: Integer::from(0),
         }
     }
 

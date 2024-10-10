@@ -89,6 +89,16 @@ pub struct G2Projective {
     pub z: Fp2,
 }
 
+impl From<G2Affine> for G2Projective {
+    fn from(value: G2Affine) -> Self {
+        Self {
+            x: value.x,
+            y: value.y,
+            z: Fp2::one(),
+        }
+    }
+}
+
 impl PartialEq for G2Projective {
     fn eq(&self, other: &Self) -> bool {
         // If both points are at infinity, they're equal
@@ -262,6 +272,45 @@ impl G2Projective {
         let x3 = t0.double();
         let t0 = x3.add(&t0);
         let t2 = t2.mul_base(&INTEGER_TWELVE);
+        let z3 = t1.add(&t2);
+        let t1 = t1.sub(&t2);
+        let y3 = y3.mul_base(&INTEGER_TWELVE);
+        let x3 = t4.mul(&y3);
+        let t2 = t3.mul(&t1);
+        let x3 = t2.sub(&x3);
+        let y3 = y3.mul(&t0);
+        let t1 = t1.mul(&z3);
+        let y3 = t1.add(&y3);
+        let t0 = t0.mul(&t3);
+        let z3 = z3.mul(&t4);
+        let z3 = z3.add(&t0);
+
+        G2Projective {
+            x: x3,
+            y: y3,
+            z: z3,
+        }
+    }
+
+    pub fn add_affine(&self, rhs: &G2Affine) -> Self {
+        if rhs.is_identity() {
+            return self.clone();
+        }
+
+        let t0 = self.x.mul(&rhs.x);
+        let t1 = self.y.mul(&rhs.y);
+        let t3 = rhs.x.add(&rhs.y);
+        let t4 = self.x.add(&self.y);
+        let t3 = t3.mul(&t4);
+        let t4 = t0.add(&t1);
+        let t3 = t3.sub(&t4);
+        let t4 = rhs.y.mul(&self.z);
+        let t4 = t4.add(&self.y);
+        let y3 = rhs.x.mul(&self.z);
+        let y3 = y3.add(&self.x);
+        let x3 = t0.double();
+        let t0 = x3.add(&t0);
+        let t2 = self.z.mul_base(&INTEGER_TWELVE);
         let z3 = t1.add(&t2);
         let t1 = t1.sub(&t2);
         let y3 = y3.mul_base(&INTEGER_TWELVE);

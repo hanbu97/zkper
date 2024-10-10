@@ -7,11 +7,37 @@ use self::g1_affine::G1Affine;
 
 use super::*;
 
+lazy_static::lazy_static! {
+    /// The generators of G1 and G2 are computed by finding the lexicographically smallest valid x-coordinate,
+    /// and its lexicographically smallest y-coordinate and scaling it by the cofactor such that the result is not the point at infinity.
+    ///
+    /// x = 3685416753713387016781088315183077757961620795782546409894578378688607592378376318836054947676345821548104185464507
+    /// y = 1339506544944476473020471379941921221584933875938349620426543736416511423956333506472724655353366534992391756441569
+    pub static ref G1_GENERATOR_X: Integer = Integer::from_str_radix(
+        "3685416753713387016781088315183077757961620795782546409894578378688607592378376318836054947676345821548104185464507",
+        10
+    ).expect("failed to parse generator integer");
+    pub static ref G1_GENERATOR_Y: Integer = Integer::from_str_radix(
+        "1339506544944476473020471379941921221584933875938349620426543736416511423956333506472724655353366534992391756441569",
+        10
+    ).expect("failed to parse generator integer");
+}
+
 #[derive(Clone, Debug)]
 pub struct G1Projective {
     pub x: Integer,
     pub y: Integer,
     pub z: Integer,
+}
+
+impl G1Projective {
+    pub fn generator() -> Self {
+        Self {
+            x: G1_GENERATOR_X.clone(),
+            y: G1_GENERATOR_Y.clone(),
+            z: Integer::ONE.clone(),
+        }
+    }
 }
 
 impl PartialEq for G1Projective {

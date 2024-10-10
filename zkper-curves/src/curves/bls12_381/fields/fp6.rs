@@ -79,6 +79,10 @@ impl Fp6 {
         }
     }
 
+    pub fn is_one(&self) -> bool {
+        self.c0.is_one() && self.c1.is_zero() && self.c2.is_zero()
+    }
+
     /// Generates a random element of Fp6.
     pub fn random<R: rand::RngCore>(rng: &mut R) -> Self {
         Self {
