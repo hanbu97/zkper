@@ -21,6 +21,18 @@ impl Bls12_381ScalarField {
     pub fn mul(&self, other: &Self) -> Self {
         BLS12_381_SCALAR.mul(self.0.clone(), &other.0).into()
     }
+
+    pub fn mul_assign(&mut self, other: &Self) {
+        self.0 = BLS12_381_SCALAR.mul(self.0.clone(), &other.0);
+    }
+
+    pub fn add(&self, other: &Self) -> Self {
+        BLS12_381_SCALAR.add(self.0.clone(), &other.0).into()
+    }
+
+    pub fn add_assign(&mut self, other: &Self) {
+        self.0 = BLS12_381_SCALAR.add(self.0.clone(), &other.0);
+    }
 }
 
 lazy_static::lazy_static! {

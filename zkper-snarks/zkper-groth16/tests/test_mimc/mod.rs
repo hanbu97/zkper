@@ -6,6 +6,7 @@ use zkper_groth16::{
 };
 
 use crate::MIMC_ROUNDS;
+pub mod implemention;
 
 pub struct MiMCDemo<'a> {
     pub xl: Option<Integer>,

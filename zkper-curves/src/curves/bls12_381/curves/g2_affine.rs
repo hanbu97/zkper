@@ -80,6 +80,18 @@ impl G2Affine {
         self.infinity
     }
 
+    pub fn neg(&self) -> G2Affine {
+        G2Affine {
+            x: self.x.clone(),
+            y: if self.is_identity() {
+                Fp2::one()
+            } else {
+                self.y.neg()
+            },
+            infinity: self.infinity,
+        }
+    }
+
     /// Returns a fixed generator of the group.
     /// The generators of G1 and G2 are computed by finding the lexicographically smallest valid x-coordinate,
     /// and its lexicographically smallest y-coordinate and scaling it by the cofactor such that the result is not the point at infinity.
