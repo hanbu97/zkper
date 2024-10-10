@@ -39,9 +39,8 @@ impl ToxicWaste {
     }
 }
 
-/// Generates a random common reference string for
-/// a circuit.
-pub fn generate_random_parameters<C: Circuit, R: RngCore>(
+/// Generates a random common reference string for a circuit.
+pub fn generate_proving_parameters<C: Circuit, R: RngCore>(
     circuit: C,
     mut rng: &mut R,
 ) -> Result<ProvingParameters> {

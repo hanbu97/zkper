@@ -7,7 +7,7 @@ use zkper_curves::{
     },
     traits::field::FieldTrait,
 };
-use zkper_groth16::generator::generate_random_parameters;
+use zkper_groth16::generator::generate_proving_parameters;
 
 use crate::test_mimc::MiMCDemo;
 // use zkper_curves::curves::bls12_381::Bls12_381ScalarField;
@@ -38,5 +38,5 @@ fn test_mimc() {
         constants: &constants,
     };
 
-    let params = generate_random_parameters(c, &mut rng).unwrap();
+    let params = generate_proving_parameters(c, &mut rng).unwrap();
 }
