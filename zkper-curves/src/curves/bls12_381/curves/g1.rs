@@ -184,6 +184,48 @@ impl G1Projective {
         self.add_mont(&rhs.neg())
     }
 
+    /// Scalar multiplication of a G1Projective point
+    pub fn mul_scalar(&self, scalar: &Integer) -> Self {
+        if scalar.is_zero() {
+            return G1Projective::identity();
+        }
+
+        let mut result = G1Projective::identity();
+        let mut temp = self.clone();
+        let mut scalar_bits = scalar.clone();
+
+        while !scalar_bits.is_zero() {
+            if scalar_bits.is_odd() {
+                result = result.add(&temp);
+            }
+            temp = temp.double();
+            scalar_bits >>= 1;
+        }
+
+        result
+    }
+
+    /// Scalar multiplication of a G1Projective point in Montgomery form using binary expansion method
+    pub fn mul_scalar_mont(&self, scalar: &Integer) -> Self {
+        if scalar.is_zero() {
+            return G1Projective::identity_mont();
+        }
+
+        let mut result = G1Projective::identity_mont();
+        let mut temp = self.clone();
+        let mut scalar_bits = scalar.clone();
+
+        while !scalar_bits.is_zero() {
+            if scalar_bits.is_odd() {
+                result = result.add_mont(&temp);
+            }
+            temp = temp.double_mont();
+            scalar_bits >>= 1;
+        }
+
+        result
+    }
+
     /// Frobenius endomorphism of the point
     /// This operation is crucial in the context of the Miller loop for BLS12-381
     pub fn frobenius_map(&self) -> G1Projective {
@@ -437,3 +479,39 @@ mod tests {
         }
     }
 }
+
+#[test]
+fn test_g1projective_mul_scalar() {
+    let scalar = Integer::from_str_radix(
+        "591000f3eede48cbd3c9b75e12b60acaa3457bcbe22c5157e2cbef2cea9a43ca",
+        16,
+    )
+    .unwrap();
+
+    let g1 = G1Projective::from_str_hex(
+        "14fff6cd2d99a3e655f79afaccbb1393a3ae62139ffebd0d580bcb1ef66ef480767e3dc81e7a2a1e726c5e4100973ce5", 
+        "b5525cc92832d25a58a05caf2dd5f19a784b30ca27cddcdb497cf4b346fd5f384da2557c59c6fcfc350e58cfe1fd78f", 
+        "461e83d5dcef3cced2cba68661f99b6d19df5ccb367578dce250033e9f64310e93be9f44c4e5d311a081d99ecd5402a"
+    );
+
+    let g1_scalar = g1.mul_scalar(&scalar);
+    println!("{:#}", g1_scalar);
+
+    let out_ref = G1Projective::from_str_hex(
+        "6bef549f07f386bfef60eca04d9357fef2e198aab5e4a4cfa70ae64932da740b2941236a5b4a1e416b8b46b848ea192", 
+        "16d7b00c7e32c33e81fad9d1cfdc0e67b3590a53c0927775009f77a8d1dc6d0bdbef72ab5de1a5ab095d4f95ec5312ef", 
+        "44376697afdeac3df23a6a34753b65752ba49b39a40731d658bcefaf51d9e19b1e8e612484e50599c439f2469d34c06"
+    );
+
+    let out_norm = g1_scalar.normalize();
+    let out_ref_norm = out_ref.normalize();
+
+    println!("{:#}", out_norm);
+    println!("{:#}", out_ref_norm);
+}
+
+// {
+//   x: 0x06bef549f07f386bfef60eca04d9357fef2e198aab5e4a4cfa70ae64932da740b2941236a5b4a1e416b8b46b848ea192,
+//   y: 0x16d7b00c7e32c33e81fad9d1cfdc0e67b3590a53c0927775009f77a8d1dc6d0bdbef72ab5de1a5ab095d4f95ec5312ef,
+//   z: 0x044376697afdeac3df23a6a34753b65752ba49b39a40731d658bcefaf51d9e19b1e8e612484e50599c439f2469d34c06
+// }

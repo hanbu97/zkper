@@ -43,4 +43,11 @@ impl EvaluationDomain {
             minv: BLS12_381_SCALAR.invert(Integer::from(needed_size)).unwrap(),
         })
     }
+
+    pub fn z(&self, tau: &Integer) -> Integer {
+        BLS12_381_SCALAR.sub(
+            BLS12_381_SCALAR.pow(tau.clone(), &Integer::from(self.coeffs.len())),
+            &Integer::ONE,
+        )
+    }
 }
