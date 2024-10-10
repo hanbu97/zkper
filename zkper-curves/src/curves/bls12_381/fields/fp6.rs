@@ -1,22 +1,24 @@
-use std::{
-    fmt::{self, Display},
-    str::FromStr,
-};
+use std::fmt::{self, Display};
 
 use super::fp2::Fp2;
 
 lazy_static::lazy_static! {
     // Fp2::NONRESIDUE^(((q^1) - 1) / 3)
-    pub static ref FROBENIUS_COEFF_FP6_C1: Fp2 =Fp2::from_hexs(
+    pub static ref FROBENIUS_COEFF_FP6_C1: Fp2 =Fp2::from_strs(
         "0",
         "4002409555221667392624310435006688643935503118305586438271171395842971157480381377015405980053539358417135540939436"
     );
     // Fq2(u + 1)**(((2q^1) - 2) / 3)
-    pub static ref FROBENIUS_COEFF_FP6_C2: Fp2 = Fp2::from_hexs(
+    pub static ref FROBENIUS_COEFF_FP6_C2: Fp2 = Fp2::from_strs(
         "4002409555221667392624310435006688643935503118305586438271171395842971157480381377015405980053539358417135540939437",
         "0"
     );
 
+}
+
+#[test]
+fn test_c() {
+    println!("C1: {}", FROBENIUS_COEFF_FP6_C1.clone());
 }
 
 /// Represents an element of Fp6 as c0 + c1 * v + c2 * v^2
@@ -35,6 +37,16 @@ impl Display for Fp6 {
             "Fp6(\n    {} \n   + ({}) * v \n    + ({}) * v^2\n)",
             self.c0, self.c1, self.c2
         )
+    }
+}
+
+impl From<Fp2> for Fp6 {
+    fn from(value: Fp2) -> Self {
+        Fp6 {
+            c0: value,
+            c1: Fp2::zero(),
+            c2: Fp2::zero(),
+        }
     }
 }
 
@@ -118,7 +130,7 @@ impl Fp6 {
     }
 
     /// Mul
-    pub fn mul(self, other: &Fp6) -> Fp6 {
+    pub fn mul(&self, other: &Fp6) -> Fp6 {
         let a_a = self.c0.mul(&other.c0);
         let b_b = self.c1.mul(&other.c1);
         let c_c = self.c2.mul(&other.c2);
@@ -389,6 +401,8 @@ mod tests {
                 ],
             ),
         };
+
+        println!("a: {}", a);
 
         assert_eq!(a.square(), a.clone().mul(&a));
         assert_eq!(b.square(), b.clone().mul(&b));
