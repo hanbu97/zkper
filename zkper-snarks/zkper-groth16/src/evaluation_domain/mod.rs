@@ -50,4 +50,60 @@ impl EvaluationDomain {
             &Integer::ONE,
         )
     }
+
+    fn bitreverse(mut n: u32, l: u32) -> u32 {
+        let mut r = 0;
+        for _ in 0..l {
+            r = (r << 1) | (n & 1);
+            n >>= 1;
+        }
+        r
+    }
+
+    fn base_fft(&mut self, omega: &Integer, log_n: u32) {
+        let n = self.coeffs.len();
+        assert_eq!(n, 1 << log_n);
+
+        // Bit-reversal permutation
+        for k in 0..n {
+            let rk = Self::bitreverse(k as u32, log_n) as usize;
+            if k < rk {
+                self.coeffs.swap(rk, k);
+            }
+        }
+
+        let mut m: usize = 1;
+        for _ in 0..log_n {
+            let w_m = BLS12_381_SCALAR.pow(omega.clone(), &Integer::from(n / (2 * m)));
+
+            let mut k = 0;
+            while k < n {
+                let mut w = Integer::from(1);
+                for j in 0..m as usize {
+                    let mut t = self.coeffs[k + j + m].clone();
+                    t = BLS12_381_SCALAR.mul(t, &w);
+                    let mut tmp = self.coeffs[k + j].clone();
+                    tmp = BLS12_381_SCALAR.sub(tmp, &t);
+                    self.coeffs[k + j + m] = tmp;
+                    self.coeffs[k + j] = BLS12_381_SCALAR.add(self.coeffs[k + j].clone(), &t);
+                    w = BLS12_381_SCALAR.mul(w, &w_m);
+                }
+                k += 2 * m;
+            }
+            m *= 2;
+        }
+    }
+
+    pub fn fft(&mut self) {
+        self.base_fft(&self.omega.clone(), self.exp);
+    }
+
+    pub fn ifft(&mut self) {
+        self.base_fft(&self.omegainv.clone(), self.exp);
+
+        let minv = &self.minv;
+        for v in self.coeffs.iter_mut() {
+            *v = BLS12_381_SCALAR.mul(v.clone(), minv);
+        }
+    }
 }

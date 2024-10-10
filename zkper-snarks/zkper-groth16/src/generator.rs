@@ -87,6 +87,22 @@ pub fn generate_random_parameters<C: Circuit, R: RngCore>(
     }
 
     // Use inverse FFT to convert powers of tau to Lagrange coefficients
+    domain.ifft();
+
+    let powers_of_tau = domain.coeffs;
+
+    // QAP A polynomial commitments for public and private variables
+    let mut qap_a_commitments =
+        vec![G1Projective::identity(); cs.num_public_inputs + cs.num_private_inputs];
+    // QAP B polynomial commitments in G1 for public and private variables
+    let mut qap_b_g1_commitments = qap_a_commitments.clone();
+    // QAP B polynomial commitments in G2 for public and private variables
+    let mut qap_b_g2_commitments =
+        vec![G2Projective::identity(); cs.num_public_inputs + cs.num_private_inputs];
+    // Commitments to public variables for efficient public input verification
+    let mut public_commitments = vec![G1Projective::identity(); cs.num_public_inputs];
+    // Commitments to private variables used in the proof
+    let mut private_commitments = vec![G1Projective::identity(); cs.num_private_inputs];
 
     Ok(())
 }
