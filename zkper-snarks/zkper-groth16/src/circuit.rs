@@ -1,4 +1,4 @@
-use crate::constraints::ConstraintSystem;
+use crate::{constraints::ConstraintSystem, prover::ProvingSystem};
 
 /// Computations are expressed in terms of arithmetic circuits, in particular
 /// rank-1 quadratic constraint systems. The `Circuit` trait represents a
@@ -7,4 +7,6 @@ use crate::constraints::ConstraintSystem;
 pub trait Circuit {
     /// Synthesize the circuit into a rank-1 quadratic constraint system
     fn synthesize(&self, cs: &mut ConstraintSystem) -> anyhow::Result<()>;
+
+    fn synthesize_proof(&self, cs: &mut ProvingSystem) -> anyhow::Result<()>;
 }

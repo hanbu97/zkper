@@ -2,7 +2,7 @@ use self::g1::{G1Projective, G1_GENERATOR_X, G1_GENERATOR_Y};
 
 use super::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct G1Affine {
     pub x: Integer,
     pub y: Integer,

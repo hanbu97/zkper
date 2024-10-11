@@ -106,4 +106,47 @@ impl EvaluationDomain {
             *v = BLS12_381_SCALAR.mul(v.clone(), minv);
         }
     }
+
+    pub fn distribute_powers(&mut self, g: &Integer) {
+        let mut u = Integer::ONE.clone();
+        for v in self.coeffs.iter_mut() {
+            *v = BLS12_381_SCALAR.mul(v.clone(), &u);
+            u = BLS12_381_SCALAR.mul(u, g);
+        }
+    }
+
+    pub fn coset_fft(&mut self) {
+        self.distribute_powers(Bls12_381ScalarField::MULTIPLICATIVE_GENERATOR);
+        self.fft();
+    }
+
+    pub fn icoset_fft(&mut self) {
+        self.ifft();
+        self.distribute_powers(&self.geninv.clone());
+    }
+
+    pub fn mul_assign(&mut self, other: &EvaluationDomain) {
+        assert_eq!(self.coeffs.len(), other.coeffs.len());
+
+        for (a, b) in self.coeffs.iter_mut().zip(other.coeffs.iter()) {
+            *a = BLS12_381_SCALAR.mul(a.clone(), b);
+        }
+    }
+
+    pub fn sub_assign(&mut self, other: &EvaluationDomain) {
+        assert_eq!(self.coeffs.len(), other.coeffs.len());
+
+        for (a, b) in self.coeffs.iter_mut().zip(other.coeffs.iter()) {
+            *a = BLS12_381_SCALAR.sub(a.clone(), b);
+        }
+    }
+
+    pub fn divide_by_z_on_coset(&mut self) {
+        let i = self.z(Bls12_381ScalarField::MULTIPLICATIVE_GENERATOR);
+        let i = BLS12_381_SCALAR.invert(i).unwrap();
+
+        for v in self.coeffs.iter_mut() {
+            *v = BLS12_381_SCALAR.mul(v.clone(), &i);
+        }
+    }
 }

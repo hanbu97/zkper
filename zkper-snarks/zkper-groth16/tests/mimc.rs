@@ -9,7 +9,9 @@ use zkper_curves::{
     },
     traits::field::FieldTrait,
 };
-use zkper_groth16::{generator::generate_proving_parameters, verifier::prepare_verifying_key};
+use zkper_groth16::{
+    generator::generate_proving_parameters, prover::create_proof, verifier::prepare_verifying_key,
+};
 
 use crate::test_mimc::{implemention::mimc_implemention, MiMCDemo};
 // use zkper_curves::curves::bls12_381::Bls12_381ScalarField;
@@ -48,7 +50,7 @@ fn test_mimc() {
     println!("Creating proofs...");
 
     // Let's benchmark stuff!
-    const SAMPLES: u32 = 2;
+    const SAMPLES: u32 = 1;
     let mut total_proving = Duration::new(0, 0);
     let mut total_verifying = Duration::new(0, 0);
 
@@ -81,7 +83,7 @@ fn test_mimc() {
             };
 
             // Create a groth16 proof with our parameters.
-            // let proof = create_random_proof(c, &params, &mut rng).unwrap();
+            let proof = create_proof(c, &params, &mut rng).unwrap();
 
             // proof.write(&mut proof_vec).unwrap();
         }

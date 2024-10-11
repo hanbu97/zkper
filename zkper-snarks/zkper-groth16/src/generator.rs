@@ -57,7 +57,7 @@ pub fn generate_proving_parameters<C: Circuit, R: RngCore>(
     // x * 0 = 0
     for i in 0..cs.num_public_inputs {
         let a = LinearCombination::new_variable(Variable::Public(i));
-        let b = LinearCombination::zero();
+        let b: LinearCombination = LinearCombination::zero();
         let c = LinearCombination::zero();
         cs.enforce_constraint(a, b, c);
     }
