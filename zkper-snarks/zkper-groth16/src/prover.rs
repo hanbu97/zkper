@@ -292,7 +292,7 @@ pub fn create_proof<C: Circuit, R: RngCore>(
 
     Ok(Proof {
         a: g_a.to_affine(),
-        b: G2Affine::identity(),
+        b: g_b.to_affine(),
         c: g_c.to_affine(),
     })
 }

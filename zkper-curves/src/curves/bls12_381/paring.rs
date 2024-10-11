@@ -1,5 +1,3 @@
-use rug::Integer;
-
 use super::{
     curves::{g1_affine::G1Affine, g2::G2Projective, g2_affine::G2Affine},
     fields::{fp12::Fp12, fp2::Fp2, fp6::Fp6, target::TargetField},
@@ -22,6 +20,77 @@ impl BLS12_381Pairing {
         // println!("miller_loop_result: {:#}", miller_loop_result);
 
         Self::final_exponentiation(&miller_loop_result)
+    }
+
+    /// Performs the multi-Miller loop for the optimal ate pairing on BLS12-381.
+    ///
+    /// This function computes the product of multiple pairings simultaneously,
+    /// which is more efficient than computing each pairing separately and then
+    /// multiplying the results.
+    ///
+    /// Mathematical background:
+    /// For (P_i, Q_i) pairs where P_i ∈ G1, Q_i ∈ G2,
+    /// the multi-Miller loop computes ∏_i f_{u,Q_i}(P_i) where:
+    /// - u is the BLS parameter (x in this case)
+    /// - f_{u,Q_i} is the function arising from Miller's algorithm
+    ///
+    /// The loop is optimized for the BLS12-381 curve parameters.
+    pub fn multi_miller_loop(pairs: &[(&G1Affine, &G2Affine)]) -> Fp12 {
+        let mut f = Fp12::one();
+        let mut found_one = false;
+        let mut current_points: Vec<G2Projective> =
+            pairs.iter().map(|(_, q)| G2Projective::from(*q)).collect();
+
+        for i in (0..64).rev() {
+            let bit = ((MILLER_LOOP_CONSTANT >> 1) >> i) & 1 == 1;
+
+            if !found_one {
+                if bit {
+                    found_one = true;
+                }
+                continue;
+            }
+
+            f = Self::multi_doubling_step(&mut current_points, &f, pairs);
+
+            if bit {
+                f = Self::multi_addition_step(&mut current_points, pairs, &f);
+            }
+
+            f = f.square();
+        }
+
+        f = Self::multi_doubling_step(&mut current_points, &f, pairs);
+
+        if MILLER_LOOP_CONSTANT_IS_NEG {
+            f = f.conjugate();
+        }
+
+        f
+    }
+
+    fn multi_doubling_step(
+        current_points: &mut [G2Projective],
+        f: &Fp12,
+        pairs: &[(&G1Affine, &G2Affine)],
+    ) -> Fp12 {
+        let mut result = f.clone();
+        for (current, (p, _)) in current_points.iter_mut().zip(pairs.iter()) {
+            result = Self::doubling_step(current, &result, p);
+        }
+        result
+    }
+
+    fn multi_addition_step(
+        current_points: &mut [G2Projective],
+        pairs: &[(&G1Affine, &G2Affine)],
+        f: &Fp12,
+    ) -> Fp12 {
+        let mut result = f.clone();
+        for (current, (p, q)) in current_points.iter_mut().zip(pairs.iter()) {
+            result = Self::addition_step(current, q, &result, p);
+        }
+        result
     }
 
     /// Performs the final exponentiation to convert the result of a Miller loop
@@ -220,6 +289,7 @@ impl BLS12_381Pairing {
 
         Self::evaluate_line(f.clone(), &line_coeffs, p)
     }
+
     /// Computes the coefficients of the line function for point addition in G2.
     ///
     /// Returns (a, b, c) where the line function is ax + by + c = 0.

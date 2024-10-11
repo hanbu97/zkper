@@ -11,7 +11,9 @@ use zkper_curves::{
     traits::field::FieldTrait,
 };
 use zkper_groth16::{
-    generator::generate_proving_parameters, prover::create_proof, verifier::prepare_verifying_key,
+    generator::generate_proving_parameters,
+    prover::create_proof,
+    verifier::{prepare_verifying_key, verify_proof},
 };
 
 use crate::test_mimc::{implemention::mimc_implemention, MiMCDemo};
@@ -83,11 +85,12 @@ fn test_mimc() {
                 constants: &constants,
             };
 
-            // Create a groth16 proof with our parameters.
+            // Create a groth16 proof
             let proof = create_proof(c, &params, &mut rng).unwrap();
 
-            println!("Proof: {:#}", proof);
-            // proof.write(&mut proof_vec).unwrap();
+            // verify the proof
+            let verified = verify_proof(&pvk, &proof, &[image.0]).unwrap();
+            println!("verified: {:#}", verified);
         }
     }
 }
