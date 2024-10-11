@@ -40,6 +40,20 @@ impl G1Projective {
     }
 }
 
+impl From<G1Affine> for G1Projective {
+    fn from(p: G1Affine) -> G1Projective {
+        G1Projective {
+            x: p.x.clone(),
+            y: p.y.clone(),
+            z: if p.infinity {
+                Integer::ZERO.clone()
+            } else {
+                Integer::ONE.clone()
+            },
+        }
+    }
+}
+
 impl PartialEq for G1Projective {
     fn eq(&self, other: &Self) -> bool {
         let self_normalized = self.normalize();

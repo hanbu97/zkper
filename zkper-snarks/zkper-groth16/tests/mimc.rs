@@ -4,8 +4,9 @@ use rand::Rng;
 use zkper_base::rand::ZkperRng;
 use zkper_curves::{
     curves::bls12_381::{
-        curves::g1::G1Projective, Bls12_381BaseField, Bls12_381ScalarField, BLS12_381_BASE,
-        BLS12_381_SCALAR,
+        curves::{g1::G1Projective, g2::G2Projective, g2_affine::G2Affine},
+        fields::fp2::Fp2,
+        Bls12_381BaseField, Bls12_381ScalarField, BLS12_381_BASE, BLS12_381_SCALAR,
     },
     traits::field::FieldTrait,
 };
@@ -85,6 +86,7 @@ fn test_mimc() {
             // Create a groth16 proof with our parameters.
             let proof = create_proof(c, &params, &mut rng).unwrap();
 
+            println!("Proof: {:#}", proof);
             // proof.write(&mut proof_vec).unwrap();
         }
     }

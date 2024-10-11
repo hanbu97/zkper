@@ -33,6 +33,27 @@ impl G1Affine {
             infinity: true,
         }
     }
+
+    // /// Scalar multiplication of a G1Projective point
+    // pub fn mul_scalar(&self, scalar: &Integer) -> Self {
+    //     if scalar.is_zero() {
+    //         return Self::identity();
+    //     }
+
+    //     let mut result = Self::identity();
+    //     let mut temp = self.clone();
+    //     let mut scalar_bits = scalar.clone();
+
+    //     while !scalar_bits.is_zero() {
+    //         if scalar_bits.is_odd() {
+    //             result = result.add(&temp);
+    //         }
+    //         temp = temp.double();
+    //         scalar_bits >>= 1;
+    //     }
+
+    //     result
+    // }
 }
 
 impl<'a> From<&'a G1Projective> for G1Affine {
@@ -61,17 +82,13 @@ impl From<G1Projective> for G1Affine {
 
 impl fmt::Display for G1Affine {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if f.alternate() {
-            write!(
-                f,
-                "G1Affine {{\n    x: {},\n    y: {},\n    infinity: {}\n}}",
-                self.x.to_string_radix(16),
-                self.y.to_string_radix(16),
-                self.infinity
-            )
-        } else {
-            write!(f, "G1Affine({}, {}, {})", self.x, self.y, self.infinity)
-        }
+        write!(
+            f,
+            "G1Affine {{\n    x: {},\n    y: {},\n    infinity: {}\n}}",
+            self.x.to_string_radix(16),
+            self.y.to_string_radix(16),
+            self.infinity
+        )
     }
 }
 

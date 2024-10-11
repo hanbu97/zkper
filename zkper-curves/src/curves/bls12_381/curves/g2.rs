@@ -89,6 +89,16 @@ pub struct G2Projective {
     pub z: Fp2,
 }
 
+impl<'a> From<&'a G2Affine> for G2Projective {
+    fn from(value: &'a G2Affine) -> Self {
+        Self {
+            x: value.x.clone(),
+            y: value.y.clone(),
+            z: Fp2::one(),
+        }
+    }
+}
+
 impl From<G2Affine> for G2Projective {
     fn from(value: G2Affine) -> Self {
         Self {

@@ -67,6 +67,10 @@ impl G2Affine {
         }
     }
 
+    pub fn to_curve(&self) -> G2Projective {
+        self.into()
+    }
+
     /// Returns the identity of the group: the point at infinity.
     pub fn identity() -> Self {
         G2Affine {
