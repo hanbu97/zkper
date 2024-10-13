@@ -31,7 +31,6 @@ pub fn verify_proof(
         acc = acc.add(&b.to_curve().mul_scalar(public_input));
     }
 
-    // panic!();
     let answer = BLS12_381Pairing::multi_miller_loop(&[
         (&proof.a, &proof.b.clone().into()),
         (&acc.to_affine(), &pvk.neg_gamma_g2),

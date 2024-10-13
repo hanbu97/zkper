@@ -3,15 +3,9 @@ use num_traits::Pow;
 use rand_core::RngCore;
 use rug::integer::BorrowInteger;
 use rug::integer::MiniInteger;
-use rug::ops::DivRounding;
 use rug::Integer;
-use std::ops::Add;
-use std::ops::Div;
 use std::ops::Mul;
 use std::ops::Rem;
-use std::ops::Sub;
-
-use crate::curves::bls12_381::BLS12_381_BASE;
 
 pub trait MontgomeryExt {
     fn from_montgomery_backend(&self, backend: &MontgomeryBackend) -> Integer;
@@ -776,10 +770,4 @@ impl MontgomeryBackend {
             return (x3, y3, z3);
         }
     }
-}
-
-#[test]
-fn test_weird_calculation() {
-    let modulus = BLS12_381_BASE.modulus();
-    println!("modulus: {}", modulus.to_string_radix(16));
 }

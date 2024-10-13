@@ -1,5 +1,3 @@
-use std::{collections::BTreeMap, sync::Arc};
-
 use crate::{
     circuit::Circuit,
     constraints::{linear_combination::LinearCombination, Variable},
@@ -10,9 +8,7 @@ use crate::{
 use anyhow::Ok;
 use rand::RngCore;
 use rug::Integer;
-use zkper_curves::curves::bls12_381::{
-    curves::g2_affine::G2Affine, fields::fp2::Fp2, Bls12_381ScalarField, BLS12_381_SCALAR,
-};
+use zkper_curves::curves::bls12_381::{Bls12_381ScalarField, BLS12_381_SCALAR};
 use zkper_curves::traits::field::FieldTrait;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

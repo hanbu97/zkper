@@ -1,13 +1,8 @@
 use std::time::{Duration, Instant};
 
-use rand::Rng;
 use zkper_base::rand::ZkperRng;
 use zkper_curves::{
-    curves::bls12_381::{
-        curves::{g1::G1Projective, g2::G2Projective, g2_affine::G2Affine},
-        fields::fp2::Fp2,
-        Bls12_381BaseField, Bls12_381ScalarField, BLS12_381_BASE, BLS12_381_SCALAR,
-    },
+    curves::bls12_381::{Bls12_381ScalarField, BLS12_381_SCALAR},
     traits::field::FieldTrait,
 };
 use zkper_groth16::{
@@ -53,7 +48,7 @@ fn test_mimc() {
     println!("Creating proofs...");
 
     // Let's benchmark stuff!
-    const SAMPLES: u32 = 1;
+    const SAMPLES: u32 = 10;
     let mut total_proving = Duration::new(0, 0);
     let mut total_verifying = Duration::new(0, 0);
 
@@ -75,8 +70,8 @@ fn test_mimc() {
 
         proof_vec.truncate(0);
 
-        let start = Instant::now();
         {
+            let start = Instant::now();
             // Create an instance of our circuit (with the
             // witness)
             let c = MiMCDemo {
@@ -87,10 +82,24 @@ fn test_mimc() {
 
             // Create a groth16 proof
             let proof = create_proof(c, &params, &mut rng).unwrap();
+            total_proving += start.elapsed();
 
             // verify the proof
+            let start = Instant::now();
             let verified = verify_proof(&pvk, &proof, &[image.0]).unwrap();
             println!("verified: {:#}", verified);
+            total_verifying += start.elapsed();
         }
     }
+
+    let proving_avg = total_proving / SAMPLES;
+    let proving_avg =
+        proving_avg.subsec_nanos() as f64 / 1_000_000_000f64 + (proving_avg.as_secs() as f64);
+
+    let verifying_avg = total_verifying / SAMPLES;
+    let verifying_avg =
+        verifying_avg.subsec_nanos() as f64 / 1_000_000_000f64 + (verifying_avg.as_secs() as f64);
+
+    println!("Average proving time: {:?} seconds", proving_avg);
+    println!("Average verifying time: {:?} seconds", verifying_avg);
 }
