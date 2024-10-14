@@ -2,8 +2,6 @@ use std::marker::PhantomData;
 
 use crate::integer::traits::ZkperIntegerTrait;
 
-pub mod traits;
-
 /// type to define a finite field and its arithmetics
 pub struct ZkperFiniteField<Integer: ZkperIntegerTrait> {
     pub modulus: Integer,

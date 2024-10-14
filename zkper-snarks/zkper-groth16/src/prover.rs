@@ -5,7 +5,6 @@ use crate::{
     models::{proof::Proof, proving_parameters::ProvingParameters},
     multiexp::{multiexp, multiexp_g2},
 };
-use anyhow::Ok;
 use rand::RngCore;
 use rug::Integer;
 use zkper_curves::curves::bls12_381::{Bls12_381ScalarField, BLS12_381_SCALAR};

@@ -4,6 +4,7 @@ use super::errors::ECMErrors;
 use super::point::Point;
 
 use primal::Primes;
+// use rug::{rand::RandState, Integer};
 use rug::{rand::RandState, Integer};
 use std::collections::HashMap;
 

@@ -1,8 +1,16 @@
 use super::traits::ZkperIntegerTrait;
-use num_traits::Pow;
-use rug::Integer;
+use rug::{
+    integer::{BorrowInteger, MiniInteger},
+    Integer,
+};
 
 pub struct RugBackend(pub Integer);
+
+pub const INTEGER_TWO: &'static Integer = {
+    const MINI: MiniInteger = MiniInteger::const_from_u8(2);
+    const BORROW: BorrowInteger = MINI.borrow();
+    BorrowInteger::const_deref(&BORROW)
+};
 
 impl From<Integer> for RugBackend {
     fn from(value: Integer) -> Self {
@@ -20,6 +28,17 @@ impl ZkperIntegerTrait for RugBackend {
     fn from_u64(u: u64) -> Self {
         let value = Integer::from(u);
         Self(value)
+    }
+    fn one() -> Self {
+        Self(Integer::ONE.clone())
+    }
+
+    fn zero() -> Self {
+        Self(Integer::ZERO.clone())
+    }
+
+    fn two() -> Self {
+        Self(INTEGER_TWO.clone())
     }
 
     fn add(&self, other: &Self) -> Self {
