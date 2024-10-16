@@ -1,0 +1,9 @@
+[package]
+name = "zkper-rand"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rand.workspace = true
+rand_chacha.workspace = true
+rug.workspace = true

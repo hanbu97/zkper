@@ -8,11 +8,14 @@ members = [
     ".",
     "zkper-base",
     "zkper-curves",
+    "zkper-integer",
+    "zkper-rand",
     "zkper-snarks",
     "zkper-snarks/zkper-groth16",
 ]
 
 [workspace.dependencies]
+zkper-rand = { path = "zkper-rand" }
 zkper-base = { path = "zkper-base" }
 zkper-curves = { path = "zkper-curves" }
 

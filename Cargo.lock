@@ -538,5 +538,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "zkper-integer"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "num-traits",
+ "rand",
+ "rug",
+ "zkper-rand",
+]
+
+[[package]]
+name = "zkper-rand"
+version = "0.1.0"
+dependencies = [
+ "rand",
+ "rand_chacha",
+ "rug",
+]
+
+[[package]]
 name = "zkper-snarks"
 version = "0.1.0"

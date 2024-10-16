@@ -1,12 +1,8 @@
 use std::{cmp::Ordering, hash::Hash};
 
-use enum_dispatch::enum_dispatch;
-use rand::RngCore;
-
-use crate::rand::ZkperRng;
+use zkper_rand::ZkperRng;
 
 /// define behavior of zkper integer
-#[enum_dispatch]
 pub trait ZkperIntegerTrait: Clone + Sized + Hash + Default {
     // generate integers
     fn from_i32(u: i32) -> Self;
@@ -84,8 +80,3 @@ pub trait ZkperIntegerTrait: Clone + Sized + Hash + Default {
         self.clone()
     }
 }
-
-// fn add(&self, other: &Self) -> Self;
-// fn mul(&self, other: &Self) -> Self;
-// fn div(&self, other: &Self) -> Self;
-// fn sqrt(&self) -> Self;

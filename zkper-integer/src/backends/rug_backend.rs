@@ -1,14 +1,12 @@
-use crate::rand::ZkperRng;
-
 use super::traits::ZkperIntegerTrait;
 use num_traits::One;
-use rand::RngCore;
 use rug::{
     integer::{BorrowInteger, MiniInteger},
-    rand::{RandGen, RandState, ThreadRandGen, ThreadRandState},
+    rand::ThreadRandState,
     Integer,
 };
 use std::str::FromStr;
+use zkper_rand::ZkperRng;
 
 #[derive(Debug, Clone, Hash, Default)]
 pub struct RugBackend(pub Integer);
@@ -36,60 +34,6 @@ impl From<Integer> for RugBackend {
         Self(value)
     }
 }
-
-impl RandGen for ZkperRng {
-    fn gen(&mut self) -> u32 {
-        self.next_u32()
-    }
-
-    fn gen_bits(&mut self, bits: u32) -> u32 {
-        if bits == 0 {
-            0
-        } else if bits < 32 {
-            self.next_u32() >> (32 - bits)
-        } else {
-            self.next_u32()
-        }
-    }
-
-    fn seed(&mut self, seed: &Integer) {
-        let seed_u64 = seed.to_u64_wrapping();
-        *self = ZkperRng::from_seed(seed_u64);
-    }
-}
-
-impl ThreadRandGen for ZkperRng {
-    fn gen(&mut self) -> u32 {
-        self.next_u32()
-    }
-
-    fn gen_bits(&mut self, bits: u32) -> u32 {
-        if bits == 0 {
-            0
-        } else if bits < 32 {
-            self.next_u32() >> (32 - bits)
-        } else {
-            self.next_u32()
-        }
-    }
-
-    fn seed(&mut self, seed: &Integer) {
-        let seed_u64 = seed.to_u64_wrapping();
-        *self = ZkperRng::from_seed(seed_u64);
-    }
-}
-
-// impl RugBackend {
-//     pub fn rand() -> Self {
-//         let t = Integer::from(100);
-//         let mut zkper_rng = ZkperRng::new_test();
-//         let mut rng: ThreadRandState<'_> = ThreadRandState::new_custom(&mut zkper_rng);
-
-//         let t = t.random_below(&mut rng);
-
-//         Self(0.into())
-//     }
-// }
 
 impl ZkperIntegerTrait for RugBackend {
     fn from_hex_str(hex_str: &str) -> Self {

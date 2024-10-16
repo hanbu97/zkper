@@ -1,6 +1,5 @@
 use traits::ZkperIntegerTrait;
-
-use crate::rand::ZkperRng;
+use zkper_rand::ZkperRng;
 
 pub mod backends;
 pub mod implements;
