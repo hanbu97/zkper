@@ -81,4 +81,11 @@ pub trait ZkperIntegerTrait: Clone + Sized + Hash + Default + Debug {
     fn abs(&self) -> Self {
         self.clone()
     }
+
+    fn is_even(&self) -> bool {
+        self.is_zero() || self.shr_32(0).is_zero()
+    }
+    fn is_odd(&self) -> bool {
+        !self.is_even()
+    }
 }

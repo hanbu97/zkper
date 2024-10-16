@@ -4,6 +4,7 @@ use traits::ZkperPrimeTrait;
 use zkper_integer::{traits::ZkperIntegerTrait, ZkperInteger};
 
 pub mod backends;
+pub mod implementions;
 pub mod prime;
 pub mod traits;
 
@@ -26,14 +27,6 @@ impl<T: ZkperIntegerTrait, P: ZkperPrimeTrait<T>> ZkperModularInteger<T, P> {
             value: value,
             _prime: PhantomData,
         }
-    }
-}
-
-impl<T: ZkperIntegerTrait, P: ZkperPrimeTrait<T>> Add for ZkperModularInteger<T, P> {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        P::additive(&self.value, &rhs.value).into()
     }
 }
 

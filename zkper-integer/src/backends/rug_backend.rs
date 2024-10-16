@@ -201,6 +201,14 @@ impl ZkperIntegerTrait for RugBackend {
     fn from_bytes(bytes: &[u8]) -> Self {
         Self(Integer::from_digits(bytes, rug::integer::Order::Lsf))
     }
+
+    fn is_even(&self) -> bool {
+        self.0.is_even()
+    }
+
+    fn is_odd(&self) -> bool {
+        self.0.is_odd()
+    }
 }
 
 // fn add(&self, other: &Self) -> Self {

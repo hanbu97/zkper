@@ -9,12 +9,35 @@ pub trait ZkperPrimeTrait<T: ZkperIntegerTrait>: Sized + Add + Sub {
         a % &Self::value()
     }
 
-    // basic arithmetic operations
+    // basic arithmetic operations  // to optimize clone
     fn additive(a: &ZkperInteger<T>, b: &ZkperInteger<T>) -> ZkperInteger<T> {
-        // to optimize clone
         Self::reduce(&(a + b))
     }
-    // fn sub(a: &ZkperInteger<T>, b: &ZkperInteger<T>) -> ZkperInteger<T>;
-    // fn mul(a: &ZkperInteger<T>, b: &ZkperInteger<T>) -> ZkperInteger<T>;
-    // fn neg(a: &ZkperInteger<T>) -> ZkperInteger<T>;
+    fn subtract(a: &ZkperInteger<T>, b: &ZkperInteger<T>) -> ZkperInteger<T> {
+        Self::reduce(&(a.clone() - b))
+    }
+    fn multiply(a: &ZkperInteger<T>, b: &ZkperInteger<T>) -> ZkperInteger<T> {
+        Self::reduce(&(a.clone() * b))
+    }
+    fn negative(a: &ZkperInteger<T>) -> ZkperInteger<T> {
+        Self::reduce(&-a.clone())
+    }
+
+    // advanced arithmetic operations
+    fn square(a: &ZkperInteger<T>) -> ZkperInteger<T> {
+        Self::multiply(a, a)
+    }
+    fn pow(base: &ZkperInteger<T>, exp: &ZkperInteger<T>) -> ZkperInteger<T> {
+        let mut result = ZkperInteger::from(1u64);
+        let mut base = base.clone();
+        let mut exp = exp.clone();
+        while !exp.is_zero() {
+            if exp.is_odd() {
+                result = Self::multiply(&result, &base);
+            }
+            base = Self::square(&base);
+            exp >>= 1;
+        }
+        result
+    }
 }

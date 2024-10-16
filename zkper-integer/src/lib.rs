@@ -164,4 +164,12 @@ impl<T: ZkperIntegerTrait> ZkperInteger<T> {
     pub fn from_bytes(bytes: &[u8]) -> Self {
         Self(T::from_bytes(bytes))
     }
+
+    pub fn is_odd(&self) -> bool {
+        self.0.is_odd()
+    }
+
+    pub fn is_even(&self) -> bool {
+        self.0.is_even()
+    }
 }
