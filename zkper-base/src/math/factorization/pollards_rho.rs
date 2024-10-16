@@ -43,9 +43,8 @@ fn polynomial_pollards_rho<T: ZkperIntegerTrait>(
 
 #[cfg(test)]
 mod test {
-    use crate::integer::backends::rug_backend::RugBackend;
-
     use super::*;
+    use zkper_integer::backends::rug_backend::RugBackend;
 
     #[test]
     fn test_get_factor_pollard_rho() {

@@ -16,6 +16,7 @@ members = [
 
 [workspace.dependencies]
 zkper-rand = { path = "zkper-rand" }
+zkper-integer = { path = "zkper-integer" }
 zkper-base = { path = "zkper-base" }
 zkper-curves = { path = "zkper-curves" }
 

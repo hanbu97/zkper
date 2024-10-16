@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::integer::traits::ZkperIntegerTrait;
+use zkper_integer::traits::ZkperIntegerTrait;
 
 /// type to define a finite field and its arithmetics
 pub struct ZkperFiniteField<Integer: ZkperIntegerTrait> {

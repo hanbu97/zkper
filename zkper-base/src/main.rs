@@ -1,7 +1,5 @@
-use zkper_base::{
-    integer::{backends::rug_backend::RugBackend, ZkperInteger},
-    math::factorization::find_generator,
-};
+use zkper_base::math::factorization::find_generator;
+use zkper_integer::{backends::rug_backend::RugBackend, ZkperInteger};
 
 fn main() {
     let modulus = ZkperInteger::<RugBackend>::from_str(

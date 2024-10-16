@@ -1,11 +1,11 @@
-use crate::integer::{traits::ZkperIntegerTrait, ZkperInteger};
-use crate::rand::ZkperRng;
-
 use super::errors::ECMErrors;
 use super::point::Point;
 
 use primal::Primes;
 use std::collections::HashMap;
+use zkper_integer::traits::ZkperIntegerTrait;
+use zkper_integer::ZkperInteger;
+use zkper_rand::ZkperRng;
 
 /// Returns one factor of n using Lenstra's 2 Stage Elliptic curve Factorization
 /// with Suyama's Parameterization. Here Montgomery arithmetic is used for fast
@@ -230,10 +230,8 @@ pub fn ecm_with_params<T: ZkperIntegerTrait>(
 
 #[cfg(test)]
 mod tests {
-
-    use crate::integer::backends::rug_backend::RugBackend;
-
     use super::*;
+    use zkper_integer::backends::rug_backend::RugBackend;
 
     fn ecm<T: ZkperIntegerTrait>(
         n: &ZkperInteger<T>,

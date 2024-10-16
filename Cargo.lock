@@ -506,8 +506,9 @@ dependencies = [
  "primal",
  "rand",
  "rand_chacha",
- "rug",
  "thiserror",
+ "zkper-integer",
+ "zkper-rand",
 ]
 
 [[package]]

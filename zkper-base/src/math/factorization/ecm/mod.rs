@@ -1,11 +1,8 @@
 // ref: https://github.com/skyf0l/ecm-rs/blob/main/src/ecm.rs
 
 use rand::{rngs::OsRng, Rng};
-
-use crate::{
-    integer::{traits::ZkperIntegerTrait, ZkperInteger},
-    rand::ZkperRng,
-};
+use zkper_integer::{traits::ZkperIntegerTrait, ZkperInteger};
+use zkper_rand::ZkperRng;
 
 use self::ecm::ecm_one_factor;
 

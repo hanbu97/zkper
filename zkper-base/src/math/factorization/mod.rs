@@ -2,10 +2,8 @@ pub mod ecm;
 pub mod pollards_rho;
 pub mod traits;
 use num_traits::One;
-use rug::{Complete, Integer};
 use std::ops::Neg;
-
-use crate::integer::{traits::ZkperIntegerTrait, ZkperInteger};
+use zkper_integer::{traits::ZkperIntegerTrait, ZkperInteger};
 
 use self::{ecm::get_factor_ecm, pollards_rho::get_factor_pollard_rho};
 
@@ -175,7 +173,7 @@ pub fn check_factorization<T: ZkperIntegerTrait>(
 
 #[cfg(test)]
 mod test {
-    use crate::integer::backends::rug_backend::RugBackend;
+    use zkper_integer::backends::rug_backend::RugBackend;
 
     use super::*;
 

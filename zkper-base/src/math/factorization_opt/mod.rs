@@ -1,6 +1,5 @@
 use primal::Sieve;
-
-use crate::integer::{traits::ZkperIntegerTrait, ZkperInteger};
+use zkper_integer::{traits::ZkperIntegerTrait, ZkperInteger};
 
 const SIEVE_LIMIT: usize = 1000000;
 
@@ -113,10 +112,9 @@ pub fn pollard_rho<T: ZkperIntegerTrait>(n: &ZkperInteger<T>) -> ZkperInteger<T>
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        integer::{backends::rug_backend::RugBackend, ZkperInteger},
-        math::factorization::find_generator,
-    };
+    use zkper_integer::{backends::rug_backend::RugBackend, ZkperInteger};
+
+    use crate::math::factorization::find_generator;
 
     #[test]
     pub fn test_gen_two_adic_primitive_root_of_unity() {

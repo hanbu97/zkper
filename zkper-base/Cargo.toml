@@ -4,7 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rug = { workspace = true, features = ["num-traits"] }
+zkper-rand.workspace = true
+zkper-integer.workspace = true
+
 rand.workspace = true
 rand_chacha.workspace = true
 primal.workspace = true

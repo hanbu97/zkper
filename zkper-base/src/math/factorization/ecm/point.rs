@@ -1,4 +1,4 @@
-use crate::integer::{traits::ZkperIntegerTrait, ZkperInteger};
+use zkper_integer::{traits::ZkperIntegerTrait, ZkperInteger};
 
 /// Montgomery form of Points in an elliptic curve.
 ///
@@ -124,9 +124,8 @@ impl<T: ZkperIntegerTrait> PartialEq for Point<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::integer::backends::rug_backend::RugBackend;
-
     use super::*;
+    use zkper_integer::backends::rug_backend::RugBackend;
 
     #[test]
     fn test_point_add() {
