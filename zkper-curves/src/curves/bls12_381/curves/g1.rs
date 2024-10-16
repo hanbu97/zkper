@@ -415,7 +415,8 @@ impl G1Projective {
 
 #[cfg(test)]
 mod tests {
-    use zkper_base::rand::ZkperRng;
+
+    use zkper_rand::ZkperRng;
 
     use crate::{
         backends::montgomery::{INTEGER_EIGHT, INTEGER_FOUR},

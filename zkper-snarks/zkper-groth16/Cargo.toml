@@ -6,6 +6,8 @@ edition = "2021"
 [dependencies]
 zkper-base.workspace = true
 zkper-curves.workspace = true
+zkper-integer.workspace = true
+zkper-rand.workspace = true
 
 anyhow.workspace = true
 

@@ -523,6 +523,8 @@ dependencies = [
  "serde",
  "serde_json",
  "zkper-base",
+ "zkper-integer",
+ "zkper-rand",
 ]
 
 [[package]]
@@ -536,6 +538,8 @@ dependencies = [
  "serde_json",
  "zkper-base",
  "zkper-curves",
+ "zkper-integer",
+ "zkper-rand",
 ]
 
 [[package]]

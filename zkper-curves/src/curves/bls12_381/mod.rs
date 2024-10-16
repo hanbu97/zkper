@@ -27,7 +27,7 @@ mod tests {
     use rand::Rng;
     use rug::Integer;
     use tests::fields::scalar::Bls12_381ScalarField;
-    use zkper_base::rand::ZkperRng;
+    use zkper_rand::ZkperRng;
 
     #[test]
     fn test_sqrt_neg_square() {

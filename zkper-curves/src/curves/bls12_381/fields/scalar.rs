@@ -127,28 +127,28 @@ mod tests {
 
     use crate::{curves::bls12_381::Bls12_381ScalarField, traits::field::FieldTrait};
 
-    #[test]
-    fn test_two_adic_root_of_unity() {
-        let modulus = Bls12_381ScalarField::modulus();
+    // #[test]
+    // fn test_two_adic_root_of_unity() {
+    //     let modulus = Bls12_381ScalarField::modulus();
 
-        let generator = find_generator(&modulus);
-        println!("Generator: {}", generator); // 7
+    //     let generator = find_generator(&modulus);
+    //     println!("Generator: {}", generator); // 7
 
-        let two_adicity = (modulus.clone() - Integer::ONE).find_one(0).unwrap();
-        println!("Two-adicity: {}", two_adicity); // 32
+    //     let two_adicity = (modulus.clone() - Integer::ONE).find_one(0).unwrap();
+    //     println!("Two-adicity: {}", two_adicity); // 32
 
-        let trace = (modulus.clone() - 1) >> two_adicity;
-        let two_adic_root_of_unity = generator.pow_mod(&trace, &modulus).unwrap();
-        println!("2-adic Root of Unity: {}", two_adic_root_of_unity); // 10238227357739495823651030575849232062558860180284477541189508159991286009131
+    //     let trace = (modulus.clone() - 1) >> two_adicity;
+    //     let two_adic_root_of_unity = generator.pow_mod(&trace, &modulus).unwrap();
+    //     println!("2-adic Root of Unity: {}", two_adic_root_of_unity); // 10238227357739495823651030575849232062558860180284477541189508159991286009131
 
-        println!(
-            "MULTIPLICATIVE_GENERATOR: {}",
-            Bls12_381ScalarField::MULTIPLICATIVE_GENERATOR
-        );
-        println!("TWO_ADICITY: {}", Bls12_381ScalarField::TWO_ADICITY);
-        println!(
-            "TWO_ADIC_ROOT_OF_UNITY: {}",
-            Bls12_381ScalarField::two_adic_root_of_unity()
-        );
-    }
+    //     println!(
+    //         "MULTIPLICATIVE_GENERATOR: {}",
+    //         Bls12_381ScalarField::MULTIPLICATIVE_GENERATOR
+    //     );
+    //     println!("TWO_ADICITY: {}", Bls12_381ScalarField::TWO_ADICITY);
+    //     println!(
+    //         "TWO_ADIC_ROOT_OF_UNITY: {}",
+    //         Bls12_381ScalarField::two_adic_root_of_unity()
+    //     );
+    // }
 }

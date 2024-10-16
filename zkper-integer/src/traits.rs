@@ -1,9 +1,9 @@
-use std::{cmp::Ordering, hash::Hash};
+use std::{cmp::Ordering, fmt::Debug, hash::Hash};
 
 use zkper_rand::ZkperRng;
 
 /// define behavior of zkper integer
-pub trait ZkperIntegerTrait: Clone + Sized + Hash + Default {
+pub trait ZkperIntegerTrait: Clone + Sized + Hash + Default + Debug {
     // generate integers
     fn from_i32(u: i32) -> Self;
     fn from_u32(u: u32) -> Self;

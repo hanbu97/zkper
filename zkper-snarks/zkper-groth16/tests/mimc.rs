@@ -1,6 +1,5 @@
 use std::time::{Duration, Instant};
 
-use zkper_base::rand::ZkperRng;
 use zkper_curves::{
     curves::bls12_381::{Bls12_381ScalarField, BLS12_381_SCALAR},
     traits::field::FieldTrait,
@@ -10,6 +9,7 @@ use zkper_groth16::{
     prover::create_proof,
     verifier::{prepare_verifying_key, verify_proof},
 };
+use zkper_rand::ZkperRng;
 
 use crate::test_mimc::{implemention::mimc_implemention, MiMCDemo};
 // use zkper_curves::curves::bls12_381::Bls12_381ScalarField;

@@ -1,7 +1,6 @@
 pub mod ecm;
 pub mod pollards_rho;
 pub mod traits;
-use num_traits::One;
 use std::ops::Neg;
 use zkper_integer::{traits::ZkperIntegerTrait, ZkperInteger};
 

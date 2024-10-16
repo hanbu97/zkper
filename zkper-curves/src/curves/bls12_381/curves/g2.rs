@@ -472,7 +472,7 @@ mod tests {
     use std::ops::Sub;
 
     use rug::Integer;
-    use zkper_base::rand::ZkperRng;
+    use zkper_rand::ZkperRng;
 
     use crate::{
         backends::montgomery::{INTEGER_THREE, INTEGER_TWO},

@@ -5,6 +5,8 @@ edition = "2021"
 
 [dependencies]
 zkper-base.workspace = true
+zkper-integer.workspace = true
+zkper-rand.workspace = true
 
 lazy_static.workspace = true
 rug = { workspace = true, features = ["integer", "num-traits"] }
