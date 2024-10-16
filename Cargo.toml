@@ -9,6 +9,7 @@ members = [
     "zkper-base",
     "zkper-curves",
     "zkper-integer",
+    "zkper-modular",
     "zkper-rand",
     "zkper-snarks",
     "zkper-snarks/zkper-groth16",

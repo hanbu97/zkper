@@ -554,6 +554,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "zkper-modular"
+version = "0.1.0"
+dependencies = [
+ "zkper-integer",
+]
+
+[[package]]
 name = "zkper-rand"
 version = "0.1.0"
 dependencies = [

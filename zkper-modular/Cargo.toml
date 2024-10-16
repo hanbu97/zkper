@@ -1,0 +1,8 @@
+[package]
+name = "zkper-modular"
+version = "0.1.0"
+edition = "2021"
+description = "Modular arithmetic for zkper"
+
+[dependencies]
+zkper-integer.workspace = true
