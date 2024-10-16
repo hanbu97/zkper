@@ -5,18 +5,21 @@ use num_traits::One;
 use rug::{Complete, Integer};
 use std::ops::Neg;
 
-use crate::utils::prime::PrimeChecking;
+use crate::integer::{traits::ZkperIntegerTrait, ZkperInteger};
 
 use self::{ecm::get_factor_ecm, pollards_rho::get_factor_pollard_rho};
 
 /// Checks that the given list of factors contains all the unique primes of m.
-pub fn check_factors(m: &Integer, factors: &[Integer]) -> anyhow::Result<()> {
+pub fn check_factors<T: ZkperIntegerTrait>(
+    m: &ZkperInteger<T>,
+    factors: &[ZkperInteger<T>],
+) -> anyhow::Result<()> {
     let mut remaining = m.clone();
     for factor in factors {
         if !factor.is_prime() {
             return Err(anyhow::anyhow!("Composite factor found"));
         }
-        while (&remaining % factor).complete().is_zero() {
+        while (&remaining % factor).is_zero() {
             remaining /= factor;
         }
     }
@@ -27,12 +30,12 @@ pub fn check_factors(m: &Integer, factors: &[Integer]) -> anyhow::Result<()> {
     }
 }
 
-pub fn find_generator(modulus: &Integer) -> Integer {
+pub fn find_generator<T: ZkperIntegerTrait>(modulus: &ZkperInteger<T>) -> ZkperInteger<T> {
     let phi = modulus.clone() - 1;
     let factors = get_factors(&phi).unwrap();
 
-    for a in 2..=20 {
-        let candidate = Integer::from(a);
+    for a in 2..=20usize {
+        let candidate = ZkperInteger::from(a);
         if is_primitive_root(&candidate, modulus, &phi, &factors) {
             return candidate;
         }
@@ -44,15 +47,15 @@ pub fn find_generator(modulus: &Integer) -> Integer {
     panic!("Generator not found");
 }
 
-pub fn is_primitive_root(
-    a: &Integer,
-    modulus: &Integer,
-    phi: &Integer,
-    factors: &[Integer],
+pub fn is_primitive_root<T: ZkperIntegerTrait>(
+    a: &ZkperInteger<T>,
+    modulus: &ZkperInteger<T>,
+    phi: &ZkperInteger<T>,
+    factors: &[ZkperInteger<T>],
 ) -> bool {
     for p in factors {
-        let exp = (phi / p).complete();
-        if a.clone().pow_mod(&exp, modulus).unwrap().is_one() {
+        let exp = phi / p;
+        if a.clone().pow_mod(&exp, modulus).is_one() {
             return false;
         }
     }
@@ -61,10 +64,10 @@ pub fn is_primitive_root(
 
 /// Computes the smallest primitive root of the given prime q.
 /// The unique factors of q-1 can be given to speed up the search for the root.
-pub fn primitive_root(
-    q: &Integer,
-    factors: Option<Vec<Integer>>,
-) -> anyhow::Result<(Integer, Vec<Integer>)> {
+pub fn primitive_root<T: ZkperIntegerTrait>(
+    q: &ZkperInteger<T>,
+    factors: Option<Vec<ZkperInteger<T>>>,
+) -> anyhow::Result<(ZkperInteger<T>, Vec<ZkperInteger<T>>)> {
     let factors = match factors {
         Some(f) => {
             check_factors(&(q.clone() - 1), &f)?;
@@ -73,13 +76,13 @@ pub fn primitive_root(
         None => get_factors(&(q.clone() - 1))?,
     };
 
-    let mut g = Integer::from(2);
-    let q_minus_one: Integer = q.clone() - 1;
+    let mut g = ZkperInteger::two();
+    let q_minus_one = q.clone() - 1;
     loop {
         let mut is_primitive_root = true;
         for factor in &factors {
             let exp = q_minus_one.clone() / factor;
-            if g.clone().pow_mod(&exp, q).unwrap() == 1 {
+            if g.clone().pow_mod(&exp, q).is_one() {
                 is_primitive_root = false;
                 break;
             }
@@ -93,7 +96,9 @@ pub fn primitive_root(
 
 /// Finds all prime factors of a given BigUint.
 /// Returns a sorted vector of prime factors.
-pub fn get_factors(m: &Integer) -> anyhow::Result<Vec<Integer>> {
+pub fn get_factors<T: ZkperIntegerTrait>(
+    m: &ZkperInteger<T>,
+) -> anyhow::Result<Vec<ZkperInteger<T>>> {
     let mut m_cpy = m.clone();
     if m_cpy.is_prime() {
         return Ok(vec![m_cpy]);
@@ -102,10 +107,10 @@ pub fn get_factors(m: &Integer) -> anyhow::Result<Vec<Integer>> {
     let mut f = std::collections::HashSet::new();
 
     for prime in primal::Primes::all().take(10000) {
-        let small_prime = Integer::from(prime);
+        let small_prime = ZkperInteger::from(prime);
         let mut add_factor = false;
 
-        while m_cpy.is_divisible_u(prime as u32) {
+        while m_cpy.is_divisible(&prime.into()) {
             m_cpy /= &small_prime;
             add_factor = true;
         }
@@ -122,14 +127,14 @@ pub fn get_factors(m: &Integer) -> anyhow::Result<Vec<Integer>> {
         }
 
         // Try Pollard's Rho algorithm first
-        let mut factor: Integer = get_factor_pollard_rho(&m_cpy);
+        let mut factor: ZkperInteger<T> = get_factor_pollard_rho(&m_cpy);
         if factor.is_one() || factor == m_cpy {
             // If Pollard's Rho fails, try ECM factorization
             factor = get_factor_ecm(&m_cpy)?;
         }
 
         // Remove all instances of this factor from m_cpy
-        let temp: Integer = (&m_cpy % &factor).into();
+        let temp = &m_cpy % &factor;
         while temp.is_zero() {
             m_cpy /= &factor;
         }
@@ -138,7 +143,7 @@ pub fn get_factors(m: &Integer) -> anyhow::Result<Vec<Integer>> {
     }
 
     // Convert the set of factors to a sorted vector
-    let mut factors: Vec<Integer> = f.into_iter().collect();
+    let mut factors: Vec<ZkperInteger<T>> = f.into_iter().collect();
     factors.sort();
     Ok(factors)
 }
@@ -153,11 +158,14 @@ pub fn get_factors(m: &Integer) -> anyhow::Result<Vec<Integer>> {
 /// # Returns
 ///
 /// `true` if the factors completely factorize `p`, `false` otherwise.
-pub fn check_factorization(p: &Integer, factors: &[Integer]) -> bool {
+pub fn check_factorization<T: ZkperIntegerTrait>(
+    p: &ZkperInteger<T>,
+    factors: &[ZkperInteger<T>],
+) -> bool {
     let mut remaining = p.clone();
 
     for factor in factors {
-        while (&remaining % factor).complete().is_zero() {
+        while (&remaining % factor).is_zero() {
             remaining /= factor;
         }
     }
@@ -167,6 +175,8 @@ pub fn check_factorization(p: &Integer, factors: &[Integer]) -> bool {
 
 #[cfg(test)]
 mod test {
+    use crate::integer::backends::rug_backend::RugBackend;
+
     use super::*;
 
     #[test]
@@ -177,7 +187,7 @@ mod test {
 
     #[test]
     fn test_get_factors() {
-        let m = Integer::from(0x1fffffffffe00001u64 - 1);
+        let m = ZkperInteger::<RugBackend>::from(0x1fffffffffe00001u64 - 1);
         let factors = get_factors(&m).unwrap();
 
         println!("m: {} {:?}", m, factors);

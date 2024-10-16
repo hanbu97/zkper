@@ -1,11 +1,10 @@
-use crate::utils::prime::PrimeChecking;
+use crate::integer::{traits::ZkperIntegerTrait, ZkperInteger};
+use crate::rand::ZkperRng;
 
 use super::errors::ECMErrors;
 use super::point::Point;
 
 use primal::Primes;
-// use rug::{rand::RandState, Integer};
-use rug::{rand::RandState, Integer};
 use std::collections::HashMap;
 
 /// Returns one factor of n using Lenstra's 2 Stage Elliptic curve Factorization
@@ -37,13 +36,13 @@ use std::collections::HashMap;
 /// - `B2`: Stage 2 Bound.
 /// - `max_curve`: Maximum number of curves generated.
 /// - `rgen`: Random number generator.
-pub fn ecm_one_factor(
-    n: &Integer,
+pub fn ecm_one_factor<T: ZkperIntegerTrait>(
+    n: &ZkperInteger<T>,
     b1: usize,
     b2: usize,
     max_curve: usize,
-    rgen: &mut RandState<'_>,
-) -> Result<Integer, ECMErrors> {
+    rgen: &mut ZkperRng,
+) -> Result<ZkperInteger<T>, ECMErrors> {
     if b1 % 2 != 0 || b2 % 2 != 0 {
         return Err(ECMErrors::BoundsNotEven);
     }
@@ -55,10 +54,10 @@ pub fn ecm_one_factor(
     let mut curve = 0;
     let d = (b2 as f64).sqrt() as usize;
     let two_d = 2 * d;
-    let mut beta: Vec<Integer> = vec![Integer::default(); d + 1];
-    let mut s: Vec<Point> = vec![Point::default(); d + 1];
-    let mut k = Integer::from(1);
-    let three = Integer::from(3);
+    let mut beta = vec![ZkperInteger::default(); d + 1];
+    let mut s: Vec<Point<T>> = vec![Point::<T>::default(); d + 1];
+    let mut k = ZkperInteger::one();
+    let three = ZkperInteger::three();
 
     for p in Primes::all().take_while(|&p| p <= b1) {
         k *= p.pow(b1.ilog(p));
@@ -68,29 +67,29 @@ pub fn ecm_one_factor(
         curve += 1;
 
         // Suyama's Parametrization
-        let sigma = (n - Integer::from(1)).random_below(rgen);
-        let u = (&sigma * &sigma - Integer::from(5)) % n;
-        let v: Integer = (4 * sigma) % n;
-        let diff = Integer::from(&v - &u);
-        let u_3 = u.clone().pow_mod(&three, n).unwrap();
-        let v_3 = v.clone().pow_mod(&three, n).unwrap();
+        let sigma = (n - 1).random_below(rgen);
+        let u = (&sigma * &sigma - ZkperInteger::from(5)) % n;
+        let v = (sigma * 4) % n;
+        let diff = &v - &u;
+        let u_3 = u.clone().pow_mod(&three, n);
+        let v_3 = v.clone().pow_mod(&three, n);
 
-        let c = match (Integer::from(4) * &u_3 * &v).invert(n) {
+        let c = match (ZkperInteger::four() * &u_3 * &v).invert(n) {
             Ok(c) => {
-                (diff.pow_mod(&three, n).unwrap() * (Integer::from(4) * &u + &v) * c
-                    - Integer::from(2))
+                (diff.pow_mod(&three, n) * (ZkperInteger::four() * &u + &v) * c
+                    - ZkperInteger::two())
                     % n
             }
-            _ => return Ok((Integer::from(4) * u_3 * v).gcd(n)),
+            _ => return Ok((ZkperInteger::four() * u_3 * v).gcd(n)),
         };
 
-        let a24 = (c + 2) * Integer::from(4).invert(n).unwrap() % n;
+        let a24 = (c + 2) * ZkperInteger::four().invert(n).unwrap() % n;
         let q = Point::new(u_3, v_3, a24, n.clone());
         let q = q.mont_ladder(&k);
         let g = q.z_cord.clone().gcd(n);
 
         // Stage 1 factor
-        if &g != n && g != 1 {
+        if &g != n && g.is_not_one() {
             return Ok(g);
         }
 
@@ -102,28 +101,26 @@ pub fn ecm_one_factor(
         // Stage 2 - Improved Standard Continuation
         s[1] = q.double();
         s[2] = s[1].double();
-        beta[1] = Integer::from(&s[1].x_cord * &s[1].z_cord) % n;
-        beta[2] = Integer::from(&s[2].x_cord * &s[2].z_cord) % n;
+        beta[1] = (&s[1].x_cord * &s[1].z_cord) % n;
+        beta[2] = (&s[2].x_cord * &s[2].z_cord) % n;
 
         for d in 3..=(d) {
             s[d] = s[d - 1].add(&s[1], &s[d - 2]);
-            beta[d] = Integer::from(&s[d].x_cord * &s[d].z_cord) % n;
+            beta[d] = (&s[d].x_cord * &s[d].z_cord) % n;
         }
 
-        let mut g = Integer::from(1);
+        let mut g = ZkperInteger::one();
         let b = b1 - 1;
-        let mut t = q.mont_ladder(&Integer::from(b - two_d));
-        let mut r = q.mont_ladder(&Integer::from(b));
+        let mut t = q.mont_ladder(&ZkperInteger::from(b - two_d));
+        let mut r = q.mont_ladder(&ZkperInteger::from(b));
 
         let mut primes = Primes::all().skip_while(|&q| q < b);
         for rr in (b..b2).step_by(two_d) {
-            let alpha = Integer::from(&r.x_cord * &r.z_cord) % n;
+            let alpha = (&r.x_cord * &r.z_cord) % n;
             for q in primes.by_ref().take_while(|&q| q <= rr + two_d) {
                 let delta = (q - rr) / 2;
-                let f = Integer::from(&r.x_cord - &s[d].x_cord)
-                    * Integer::from(&r.z_cord + &s[d].z_cord)
-                    - &alpha
-                    + &beta[delta];
+                let f =
+                    (&r.x_cord - &s[d].x_cord) * (&r.z_cord + &s[d].z_cord) - &alpha + &beta[delta];
                 g = (g * f) % n;
             }
             // Swap
@@ -133,7 +130,7 @@ pub fn ecm_one_factor(
         g = g.gcd(n);
 
         // Stage 2 Factor found
-        if &g != n && g != 1 {
+        if &g != n && g.is_not_one() {
             return Ok(g);
         }
     }
@@ -169,7 +166,9 @@ pub fn optimal_params(digits: usize) -> (usize, usize, usize) {
 /// # Parameters
 ///
 /// - `n`: Number to be factored.
-pub fn ecm(n: &Integer) -> Result<HashMap<Integer, usize>, ECMErrors> {
+pub fn ecm<T: ZkperIntegerTrait>(
+    n: &ZkperInteger<T>,
+) -> Result<HashMap<ZkperInteger<T>, usize>, ECMErrors> {
     let optimal_params = optimal_params(n.to_string().len());
 
     ecm_with_params(
@@ -194,19 +193,19 @@ pub fn ecm(n: &Integer) -> Result<HashMap<Integer, usize>, ECMErrors> {
 /// - `B2`: Stage 2 Bound.
 /// - `max_curve`: Maximum number of curves generated.
 /// - `seed`: Initialize pseudorandom generator.
-pub fn ecm_with_params(
-    n: &Integer,
+pub fn ecm_with_params<T: ZkperIntegerTrait>(
+    n: &ZkperInteger<T>,
     b1: usize,
     b2: usize,
     max_curve: usize,
     seed: usize,
-) -> Result<HashMap<Integer, usize>, ECMErrors> {
+) -> Result<HashMap<ZkperInteger<T>, usize>, ECMErrors> {
     let mut factors = HashMap::new();
 
-    let mut n: Integer = n.clone();
+    let mut n = n.clone();
     for prime in Primes::all().take(100_000) {
-        if n.is_divisible_u(prime as u32) {
-            let prime = Integer::from(prime);
+        if n.is_divisible(&prime.into()) {
+            let prime = ZkperInteger::from(prime);
             while n.is_divisible(&prime) {
                 n /= &prime;
                 *factors.entry(prime.clone()).or_insert(0) += 1;
@@ -214,10 +213,10 @@ pub fn ecm_with_params(
         }
     }
 
-    let mut rand_state = RandState::new();
-    rand_state.seed(&seed.into());
+    // let mut rand_state = RandState::new();
+    let mut rand_state = ZkperRng::from_seed(seed as u64);
 
-    while n != 1 {
+    while n.is_not_one() {
         let factor = ecm_one_factor(&n, b1, b2, max_curve, &mut rand_state).unwrap_or(n.clone());
 
         while n.is_divisible(&factor) {
@@ -231,21 +230,24 @@ pub fn ecm_with_params(
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+
+    use crate::integer::backends::rug_backend::RugBackend;
 
     use super::*;
 
-    fn ecm(n: &Integer) -> Result<HashMap<Integer, usize>, ECMErrors> {
+    fn ecm<T: ZkperIntegerTrait>(
+        n: &ZkperInteger<T>,
+    ) -> Result<HashMap<ZkperInteger<T>, usize>, ECMErrors> {
         super::ecm(n)
     }
 
     #[test]
     fn sympy_1() {
         assert_eq!(
-            ecm(&Integer::from_str("398883434337287").unwrap()).unwrap(),
+            ecm(&ZkperInteger::<RugBackend>::from_str("398883434337287")).unwrap(),
             HashMap::from([
-                (Integer::from_str("99476569").unwrap(), 1),
-                (Integer::from_str("4009823").unwrap(), 1),
+                (ZkperInteger::from_str("99476569"), 1),
+                (ZkperInteger::from_str("4009823"), 1),
             ])
         );
     }
@@ -253,11 +255,11 @@ mod tests {
     #[test]
     fn sympy_2() {
         assert_eq!(
-            ecm(&Integer::from_str("46167045131415113").unwrap()).unwrap(),
+            ecm(&ZkperInteger::<RugBackend>::from_str("46167045131415113")).unwrap(),
             HashMap::from([
-                (Integer::from_str("43").unwrap(), 1),
-                (Integer::from_str("2634823").unwrap(), 1),
-                (Integer::from_str("407485517").unwrap(), 1),
+                (ZkperInteger::from_str("43"), 1),
+                (ZkperInteger::from_str("2634823"), 1),
+                (ZkperInteger::from_str("407485517"), 1),
             ])
         );
     }
@@ -265,11 +267,11 @@ mod tests {
     #[test]
     fn sympy_3() {
         assert_eq!(
-            ecm(&Integer::from_str("64211816600515193").unwrap()).unwrap(),
+            ecm(&ZkperInteger::<RugBackend>::from_str("64211816600515193")).unwrap(),
             HashMap::from([
-                (Integer::from_str("281719").unwrap(), 1),
-                (Integer::from_str("359641").unwrap(), 1),
-                (Integer::from_str("633767").unwrap(), 1),
+                (ZkperInteger::from_str("281719"), 1),
+                (ZkperInteger::from_str("359641"), 1),
+                (ZkperInteger::from_str("633767"), 1),
             ])
         );
     }
@@ -277,12 +279,15 @@ mod tests {
     #[test]
     fn sympy_4() {
         assert_eq!(
-            ecm(&Integer::from_str("168541512131094651323").unwrap()).unwrap(),
+            ecm(&ZkperInteger::<RugBackend>::from_str(
+                "168541512131094651323"
+            ))
+            .unwrap(),
             HashMap::from([
-                (Integer::from_str("79").unwrap(), 1),
-                (Integer::from_str("113").unwrap(), 1),
-                (Integer::from_str("11011069").unwrap(), 1),
-                (Integer::from_str("1714635721").unwrap(), 1),
+                (ZkperInteger::from_str("79"), 1),
+                (ZkperInteger::from_str("113"), 1),
+                (ZkperInteger::from_str("11011069"), 1),
+                (ZkperInteger::from_str("1714635721"), 1),
             ])
         );
     }
@@ -290,10 +295,13 @@ mod tests {
     #[test]
     fn sympy_5() {
         assert_eq!(
-            ecm(&Integer::from_str("631211032315670776841").unwrap()).unwrap(),
+            ecm(&ZkperInteger::<RugBackend>::from_str(
+                "631211032315670776841"
+            ))
+            .unwrap(),
             HashMap::from([
-                (Integer::from_str("9312934919").unwrap(), 1),
-                (Integer::from_str("67777885039").unwrap(), 1),
+                (ZkperInteger::from_str("9312934919"), 1),
+                (ZkperInteger::from_str("67777885039"), 1),
             ])
         );
     }
@@ -301,12 +309,15 @@ mod tests {
     #[test]
     fn sympy_6() {
         assert_eq!(
-            ecm(&Integer::from_str("4132846513818654136451").unwrap()).unwrap(),
+            ecm(&ZkperInteger::<RugBackend>::from_str(
+                "4132846513818654136451"
+            ))
+            .unwrap(),
             HashMap::from([
-                (Integer::from_str("47").unwrap(), 1),
-                (Integer::from_str("160343").unwrap(), 1),
-                (Integer::from_str("2802377").unwrap(), 1),
-                (Integer::from_str("195692803").unwrap(), 1),
+                (ZkperInteger::from_str("47"), 1),
+                (ZkperInteger::from_str("160343"), 1),
+                (ZkperInteger::from_str("2802377"), 1),
+                (ZkperInteger::from_str("195692803"), 1),
             ])
         );
     }
@@ -314,12 +325,15 @@ mod tests {
     #[test]
     fn sympy_7() {
         assert_eq!(
-            ecm(&Integer::from_str("4516511326451341281684513").unwrap()).unwrap(),
+            ecm(&ZkperInteger::<RugBackend>::from_str(
+                "4516511326451341281684513"
+            ))
+            .unwrap(),
             HashMap::from([
-                (Integer::from_str("3").unwrap(), 2),
-                (Integer::from_str("39869").unwrap(), 1),
-                (Integer::from_str("131743543").unwrap(), 1),
-                (Integer::from_str("95542348571").unwrap(), 1),
+                (ZkperInteger::from_str("3"), 2),
+                (ZkperInteger::from_str("39869"), 1),
+                (ZkperInteger::from_str("131743543"), 1),
+                (ZkperInteger::from_str("95542348571"), 1),
             ])
         );
     }
@@ -327,11 +341,14 @@ mod tests {
     #[test]
     fn sympy_8() {
         assert_eq!(
-            ecm(&Integer::from_str("3146531246531241245132451321").unwrap(),).unwrap(),
+            ecm(&ZkperInteger::<RugBackend>::from_str(
+                "3146531246531241245132451321"
+            ),)
+            .unwrap(),
             HashMap::from([
-                (Integer::from_str("3").unwrap(), 1),
-                (Integer::from_str("100327907731").unwrap(), 1),
-                (Integer::from_str("10454157497791297").unwrap(), 1),
+                (ZkperInteger::from_str("3"), 1),
+                (ZkperInteger::from_str("100327907731"), 1),
+                (ZkperInteger::from_str("10454157497791297"), 1),
             ])
         );
     }
@@ -339,14 +356,17 @@ mod tests {
     #[test]
     fn sympy_9() {
         assert_eq!(
-            ecm(&Integer::from_str("4269021180054189416198169786894227").unwrap()).unwrap(),
+            ecm(&ZkperInteger::<RugBackend>::from_str(
+                "4269021180054189416198169786894227"
+            ))
+            .unwrap(),
             HashMap::from([
-                (Integer::from_str("184039").unwrap(), 1),
-                (Integer::from_str("241603").unwrap(), 1),
-                (Integer::from_str("333331").unwrap(), 1),
-                (Integer::from_str("477973").unwrap(), 1),
-                (Integer::from_str("618619").unwrap(), 1),
-                (Integer::from_str("974123").unwrap(), 1),
+                (ZkperInteger::from_str("184039"), 1),
+                (ZkperInteger::from_str("241603"), 1),
+                (ZkperInteger::from_str("333331"), 1),
+                (ZkperInteger::from_str("477973"), 1),
+                (ZkperInteger::from_str("618619"), 1),
+                (ZkperInteger::from_str("974123"), 1),
             ])
         );
     }
@@ -354,27 +374,27 @@ mod tests {
     #[test]
     fn same_factors() {
         assert_eq!(
-            ecm(&Integer::from_str("7853316850129").unwrap()).unwrap(),
-            HashMap::from([(Integer::from_str("2802377").unwrap(), 2)])
+            ecm(&ZkperInteger::<RugBackend>::from_str("7853316850129")).unwrap(),
+            HashMap::from([(ZkperInteger::from_str("2802377"), 2)])
         );
     }
 
     #[test]
     fn small_prime() {
         assert_eq!(
-            ecm(&Integer::from(17)).unwrap(),
-            HashMap::from([(Integer::from(17), 1)])
+            ecm(&ZkperInteger::<RugBackend>::from(17)).unwrap(),
+            HashMap::from([(ZkperInteger::from(17), 1)])
         );
     }
 
     #[test]
     fn big_prime() {
         assert_eq!(
-            ecm(&Integer::from_str("21472883178031195225853317139").unwrap()).unwrap(),
-            HashMap::from([(
-                Integer::from_str("21472883178031195225853317139").unwrap(),
-                1
-            )])
+            ecm(&ZkperInteger::<RugBackend>::from_str(
+                "21472883178031195225853317139"
+            ))
+            .unwrap(),
+            HashMap::from([(ZkperInteger::from_str("21472883178031195225853317139"), 1)])
         );
     }
 }

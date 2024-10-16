@@ -1,24 +1,20 @@
 use primal::Sieve;
-use rug::Integer;
-use std::ops::Neg;
 
-use num_traits::identities::One;
-
-use crate::utils::prime::PrimeChecking;
+use crate::integer::{traits::ZkperIntegerTrait, ZkperInteger};
 
 const SIEVE_LIMIT: usize = 1000000;
 
-pub fn find_generator(modulus: &Integer) -> Integer {
-    let phi = modulus.clone() - 1;
+pub fn find_generator<T: ZkperIntegerTrait>(modulus: &ZkperInteger<T>) -> ZkperInteger<T> {
+    let phi = modulus - 1u64;
     let factors = factor(&phi);
 
     let sieve = Sieve::new(SIEVE_LIMIT);
     for prime in sieve.primes_from(2) {
-        let candidate = Integer::from(prime);
+        let candidate = ZkperInteger::from(prime);
         if is_primitive_root(&candidate, modulus, &factors) {
             return candidate;
         }
-        let neg_candidate = candidate.neg();
+        let neg_candidate = -candidate;
         if is_primitive_root(&neg_candidate, modulus, &factors) {
             return neg_candidate;
         }
@@ -30,24 +26,28 @@ pub fn find_generator(modulus: &Integer) -> Integer {
     panic!("Generator not found");
 }
 
-pub fn is_primitive_root(a: &Integer, modulus: &Integer, factors: &[(Integer, u32)]) -> bool {
-    let phi: Integer = modulus.clone() - 1;
+pub fn is_primitive_root<T: ZkperIntegerTrait>(
+    a: &ZkperInteger<T>,
+    modulus: &ZkperInteger<T>,
+    factors: &[(ZkperInteger<T>, u32)],
+) -> bool {
+    let phi: ZkperInteger<T> = modulus.clone() - 1;
     for (p, _) in factors {
         let exp = phi.clone() / p;
-        if a.clone().pow_mod(&exp, modulus).unwrap() == 1 {
+        if a.clone().pow_mod(&exp, modulus).is_one() {
             return false;
         }
     }
     true
 }
 
-pub fn factor(n: &Integer) -> Vec<(Integer, u32)> {
+pub fn factor<T: ZkperIntegerTrait>(n: &ZkperInteger<T>) -> Vec<(ZkperInteger<T>, u32)> {
     let mut factors = Vec::new();
     let mut m = n.clone();
 
     let sieve = Sieve::new(SIEVE_LIMIT);
     for prime in sieve.primes_from(2) {
-        let p = Integer::from(prime);
+        let p = ZkperInteger::from(prime);
         let mut exp = 0;
         while m.is_divisible(&p) {
             m /= &p;
@@ -59,7 +59,7 @@ pub fn factor(n: &Integer) -> Vec<(Integer, u32)> {
         if m.is_one() {
             return factors;
         }
-        if m < Integer::from(SIEVE_LIMIT * SIEVE_LIMIT) {
+        if m < ZkperInteger::from(SIEVE_LIMIT * SIEVE_LIMIT) {
             break;
         }
     }
@@ -76,8 +76,11 @@ pub fn factor(n: &Integer) -> Vec<(Integer, u32)> {
     factors
 }
 
-pub fn pollard_rho_factor(n: &mut Integer, factors: &mut Vec<(Integer, u32)>) {
-    while n > &mut Integer::from(1) {
+pub fn pollard_rho_factor<T: ZkperIntegerTrait>(
+    n: &mut ZkperInteger<T>,
+    factors: &mut Vec<(ZkperInteger<T>, u32)>,
+) {
+    while n > &mut ZkperInteger::one() {
         if n.is_prime() {
             factors.push((n.clone(), 1));
             break;
@@ -93,34 +96,40 @@ pub fn pollard_rho_factor(n: &mut Integer, factors: &mut Vec<(Integer, u32)>) {
     }
 }
 
-pub fn pollard_rho(n: &Integer) -> Integer {
-    let mut x = Integer::from(2);
-    let mut y = Integer::from(2);
-    let mut d = Integer::from(1);
+pub fn pollard_rho<T: ZkperIntegerTrait>(n: &ZkperInteger<T>) -> ZkperInteger<T> {
+    let mut x = ZkperInteger::two();
+    let mut y = ZkperInteger::two();
+    let mut d = ZkperInteger::one();
 
     while d.is_one() {
         x = (x.clone() * &x + 1) % n;
         y = (y.clone() * &y + 1) % n;
         y = (y.clone() * &y + 1) % n;
-        d = Integer::from((x.clone() - &y).abs()).gcd(n);
+        d = (x.clone() - &y).abs().gcd(n);
     }
 
     d
 }
 
-#[test]
-pub fn test_gen_two_adic_primitive_root_of_unity() {
-    let modulus = Integer::from_str_radix(
-        "52435875175126190479447740508185965837690552500527637822603658699938581184513",
-        10,
-    )
-    .unwrap();
+#[cfg(test)]
+mod tests {
+    use crate::{
+        integer::{backends::rug_backend::RugBackend, ZkperInteger},
+        math::factorization::find_generator,
+    };
 
-    let generator = find_generator(&modulus);
-    println!("Generator: {}", generator);
+    #[test]
+    pub fn test_gen_two_adic_primitive_root_of_unity() {
+        let modulus = ZkperInteger::<RugBackend>::from_hex_str(
+            "52435875175126190479447740508185965837690552500527637822603658699938581184513",
+        );
 
-    let two_adicity = (modulus.clone() - Integer::ONE).find_one(0).unwrap();
-    let trace = (modulus.clone() - 1) >> two_adicity;
-    let two_adic_root_of_unity = generator.pow_mod(&trace, &modulus).unwrap();
-    println!("2-adic Root of Unity: {}", two_adic_root_of_unity);
+        let generator = find_generator(&modulus);
+        println!("Generator: {}", generator);
+
+        let two_adicity = (&modulus - ZkperInteger::one()).find_first_one(0).unwrap();
+        let trace = (modulus.clone() - 1) >> two_adicity;
+        let two_adic_root_of_unity = generator.pow_mod(&trace, &modulus);
+        println!("2-adic Root of Unity: {}", two_adic_root_of_unity);
+    }
 }

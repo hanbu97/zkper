@@ -1,4 +1,4 @@
-use rug::Integer;
+use crate::integer::{traits::ZkperIntegerTrait, ZkperInteger};
 
 /// Montgomery form of Points in an elliptic curve.
 ///
@@ -16,18 +16,18 @@ use rug::Integer;
 /// ----------
 /// - http://www.hyperelliptic.org/tanja/SHARCS/talks06/Gaj.pdf
 #[derive(Debug, Clone, Default)]
-pub struct Point {
+pub struct Point<T: ZkperIntegerTrait> {
     /// X coordinate of the Point
-    pub x_cord: Integer,
+    pub x_cord: ZkperInteger<T>,
     /// Z coordinate of the Point
-    pub z_cord: Integer,
+    pub z_cord: ZkperInteger<T>,
     /// Parameter of the elliptic curve in Montgomery form
-    pub a_24: Integer,
+    pub a_24: ZkperInteger<T>,
     /// modulus
-    pub modulus: Integer,
+    pub modulus: ZkperInteger<T>,
 }
 
-impl Point {
+impl<T: ZkperIntegerTrait> Point<T> {
     /// Initial parameters for the Point struct.
     ///
     /// # Parameters
@@ -36,8 +36,13 @@ impl Point {
     /// - `z_cord`: Z coordinate of the Point
     /// - `a_24`: Parameter of the elliptic curve in Montgomery form
     /// - `mod`: modulus
-    pub fn new(x_cord: Integer, z_cord: Integer, a_24: Integer, modulus: Integer) -> Point {
-        Point {
+    pub fn new(
+        x_cord: ZkperInteger<T>,
+        z_cord: ZkperInteger<T>,
+        a_24: ZkperInteger<T>,
+        modulus: ZkperInteger<T>,
+    ) -> Self {
+        Self {
             x_cord,
             z_cord,
             a_24,
@@ -57,22 +62,22 @@ impl Point {
     ///
     /// - `Q`: Point on the curve in Montgomery form.
     /// - `diff`: `self - Q`
-    pub fn add(&self, q: &Point, diff: &Point) -> Point {
-        let u = Integer::from(&self.x_cord - &self.z_cord) * Integer::from(&q.x_cord + &q.z_cord);
-        let v = Integer::from(&self.x_cord + &self.z_cord) * Integer::from(&q.x_cord - &q.z_cord);
-        let add = Integer::from(&u + &v);
+    pub fn add(&self, q: &Self, diff: &Self) -> Self {
+        let u = (&self.x_cord - &self.z_cord) * (&q.x_cord + &q.z_cord);
+        let v = (&self.x_cord + &self.z_cord) * (&q.x_cord - &q.z_cord);
+        let add = &u + &v;
         let subt = u - v;
-        let x_cord = Integer::from(&diff.z_cord * &add) * &add % &self.modulus;
-        let z_cord = Integer::from(&diff.x_cord * &subt) * &subt % &self.modulus;
+        let x_cord = (&diff.z_cord * &add) * &add % &self.modulus;
+        let z_cord = (&diff.x_cord * &subt) * &subt % &self.modulus;
 
         Point::new(x_cord, z_cord, self.a_24.clone(), self.modulus.clone())
     }
 
     /// Doubles a point in an elliptic curve in Montgomery form.
-    pub fn double(&self) -> Point {
-        let u = Integer::from(&self.x_cord + &self.z_cord).square();
-        let v = Integer::from(&self.x_cord - &self.z_cord).square();
-        let diff = Integer::from(&u - &v);
+    pub fn double(&self) -> Self {
+        let u = (&self.x_cord + &self.z_cord).square();
+        let v = (&self.x_cord - &self.z_cord).square();
+        let diff = &u - &v;
         let x_cord = (u * &v) % &self.modulus;
         let z_cord = ((v + &self.a_24 * &diff) * diff) % &self.modulus;
 
@@ -87,7 +92,7 @@ impl Point {
     /// # Parameters
     ///
     /// - `k`: The positive integer multiplier
-    pub fn mont_ladder(&self, k: &Integer) -> Point {
+    pub fn mont_ladder(&self, k: &ZkperInteger<T>) -> Self {
         let mut q = self.clone();
         let mut r = self.double();
 
@@ -104,7 +109,7 @@ impl Point {
     }
 }
 
-impl PartialEq for Point {
+impl<T: ZkperIntegerTrait> PartialEq for Point<T> {
     /// Two points are equal if X/Z of both points are equal.
     fn eq(&self, other: &Self) -> bool {
         if self.a_24 != other.a_24 || self.modulus != other.modulus {
@@ -119,42 +124,44 @@ impl PartialEq for Point {
 
 #[cfg(test)]
 mod tests {
+    use crate::integer::backends::rug_backend::RugBackend;
+
     use super::*;
-    use rug::Integer;
 
     #[test]
     fn test_point_add() {
-        let p1 = Point::new(11.into(), 16.into(), 7.into(), 29.into());
+        let p1 = Point::<RugBackend>::new(11.into(), 16.into(), 7.into(), 29.into());
         let p2 = Point::new(13.into(), 10.into(), 7.into(), 29.into());
         let p3 = p2.add(&p1, &p1);
 
-        assert_eq!(p3.x_cord, Integer::from(23));
-        assert_eq!(p3.z_cord, Integer::from(17));
+        assert_eq!(p3.x_cord, ZkperInteger::from(23));
+        assert_eq!(p3.z_cord, ZkperInteger::from(17));
     }
 
     #[test]
     fn test_point_double() {
-        let p1 = Point::new(11.into(), 16.into(), 7.into(), 29.into());
+        let p1 = Point::<RugBackend>::new(11.into(), 16.into(), 7.into(), 29.into());
         let p2 = p1.double();
 
-        assert_eq!(p2.x_cord, Integer::from(13));
-        assert_eq!(p2.z_cord, Integer::from(10));
+        assert_eq!(p2.x_cord, ZkperInteger::from(13));
+        assert_eq!(p2.z_cord, ZkperInteger::from(10));
     }
 
     #[test]
     fn test_point_mont_ladder() {
-        let p1 = Point::new(11.into(), 16.into(), 7.into(), 29.into());
+        let p1 = Point::<RugBackend>::new(11.into(), 16.into(), 7.into(), 29.into());
         let p3 = p1.mont_ladder(&3.into());
 
-        assert_eq!(p3.x_cord, Integer::from(23));
-        assert_eq!(p3.z_cord, Integer::from(17));
+        assert_eq!(p3.x_cord, ZkperInteger::from(23));
+        assert_eq!(p3.z_cord, ZkperInteger::from(17));
     }
 
     #[test]
     fn test_point() {
         let modulus = 101.into();
-        let a: Integer = 10.into();
-        let a_24: Integer = (a + Integer::from(2)) * Integer::from(4).invert(&modulus).unwrap();
+        let a: ZkperInteger<RugBackend> = 10.into();
+        let a_24: ZkperInteger<RugBackend> =
+            (a + ZkperInteger::two()) * ZkperInteger::four().invert(&modulus).unwrap();
 
         let p1 = Point::new(10.into(), 17.into(), a_24.clone(), modulus.clone());
         let p2 = p1.double();
