@@ -49,12 +49,14 @@ pub trait ZkperIntegerTrait: Clone + Sized + Hash + Default + Debug {
     // basic operations
     fn sub(&self, rhs: &Self) -> Self;
     fn add(&self, rhs: &Self) -> Self;
+    fn be_added(&self, rhs: Self) -> Self;
     fn add_u64(&self, rhs: u64) -> Self {
         self.add(&Self::from_u64(rhs))
     }
     fn neg(&self) -> Self;
     fn div(&self, rhs: &Self) -> Self;
     fn mul(&self, rhs: &Self) -> Self;
+    fn be_muled(&self, rhs: Self) -> Self;
     fn square(&self) -> Self {
         self.mul(self)
     }

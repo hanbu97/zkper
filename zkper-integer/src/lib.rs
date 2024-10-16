@@ -53,6 +53,10 @@ impl<T: ZkperIntegerTrait> ZkperInteger<T> {
         Self(self.0.add(&other.0))
     }
 
+    pub fn be_added(&self, other: Self) -> Self {
+        Self(self.0.be_added(other.0))
+    }
+
     pub fn add_u64(&self, other: u64) -> Self {
         Self(self.0.add_u64(other))
     }
@@ -67,6 +71,10 @@ impl<T: ZkperIntegerTrait> ZkperInteger<T> {
 
     pub fn multiply(&self, other: &Self) -> Self {
         Self(self.0.mul(&other.0))
+    }
+
+    pub fn be_muled(&self, other: Self) -> Self {
+        Self(self.0.be_muled(other.0))
     }
 
     pub fn reminder(&self, other: &Self) -> Self {

@@ -25,7 +25,7 @@ impl<T: ZkperIntegerTrait> Mul<ZkperInteger<T>> for &ZkperInteger<T> {
     type Output = ZkperInteger<T>;
 
     fn mul(self, rhs: ZkperInteger<T>) -> Self::Output {
-        self.multiply(&rhs)
+        self.be_muled(rhs)
     }
 }
 

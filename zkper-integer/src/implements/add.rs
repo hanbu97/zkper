@@ -24,7 +24,7 @@ impl<T: ZkperIntegerTrait> Add<ZkperInteger<T>> for &ZkperInteger<T> {
     type Output = ZkperInteger<T>;
 
     fn add(self, rhs: ZkperInteger<T>) -> Self::Output {
-        self.additive(&rhs)
+        self.be_added(rhs)
     }
 }
 

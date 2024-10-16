@@ -91,6 +91,10 @@ impl ZkperIntegerTrait for RugBackend {
         Self(self.0.clone() + &rhs.0)
     }
 
+    fn be_added(&self, rhs: Self) -> Self {
+        Self(rhs.0 + &self.0)
+    }
+
     fn add_u64(&self, rhs: u64) -> Self {
         Self(self.0.clone() + rhs)
     }
@@ -105,6 +109,10 @@ impl ZkperIntegerTrait for RugBackend {
 
     fn mul(&self, rhs: &Self) -> Self {
         Self(self.0.clone() * &rhs.0)
+    }
+
+    fn be_muled(&self, rhs: Self) -> Self {
+        Self(rhs.0 * &self.0)
     }
 
     fn square(&self) -> Self {
