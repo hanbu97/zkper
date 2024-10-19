@@ -528,6 +528,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "zkper-finite-field"
+version = "0.1.0"
+
+[[package]]
 name = "zkper-groth16"
 version = "0.1.0"
 dependencies = [

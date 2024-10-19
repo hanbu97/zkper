@@ -27,8 +27,8 @@ pub trait ZkperPrimeTrait<T: ZkperIntegerTrait>: Sized + Add + Sub {
     fn square(a: &ZkperInteger<T>) -> ZkperInteger<T> {
         Self::multiply(a, a)
     }
-    fn pow(base: &ZkperInteger<T>, exp: &ZkperInteger<T>) -> ZkperInteger<T> {
-        let mut result = ZkperInteger::from(1u64);
+    fn power(base: &ZkperInteger<T>, exp: &ZkperInteger<T>) -> ZkperInteger<T> {
+        let mut result = ZkperInteger::one();
         let mut base = base.clone();
         let mut exp = exp.clone();
         while !exp.is_zero() {

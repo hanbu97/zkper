@@ -7,7 +7,7 @@ edition = "2021"
 members = [
     ".",
     "zkper-base",
-    "zkper-curves",
+    "zkper-curves", "zkper-finite-field",
     "zkper-integer",
     "zkper-modular",
     "zkper-rand",
