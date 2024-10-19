@@ -1,12 +1,11 @@
-use super::traits::ZkperIntegerTrait;
+use super::*;
+
 use num_traits::One;
 use rug::{
     integer::{BorrowInteger, MiniInteger},
     rand::ThreadRandState,
     Integer,
 };
-use std::str::FromStr;
-use zkper_rand::ZkperRng;
 
 #[derive(Debug, Clone, Hash, Default)]
 pub struct RugBackend(pub Integer);
@@ -119,7 +118,7 @@ impl ZkperIntegerTrait for RugBackend {
         Self(self.0.clone().square())
     }
 
-    fn compare(&self, other: &Self) -> std::cmp::Ordering {
+    fn compare(&self, other: &Self) -> Ordering {
         self.0.cmp(&other.0)
     }
 
