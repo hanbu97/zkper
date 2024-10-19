@@ -1,10 +1,9 @@
 [package]
-name = "zkper-finite-field"
+name = "groth16"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-zkper-modular.workspace = true
 zkper-base.workspace = true
 zkper-curves.workspace = true
 zkper-integer.workspace = true

@@ -7,10 +7,13 @@ edition = "2021"
 members = [
     ".",
     "zkper-base",
-    "zkper-curves", "zkper-finite-field",
+    "zkper-curves",
+    "zkper-finite-field",
     "zkper-integer",
     "zkper-modular",
     "zkper-rand",
+    "zkper-snark",
+    "zkper-snark/groth16",
     "zkper-snarks",
     "zkper-snarks/zkper-groth16",
 ]
@@ -20,6 +23,7 @@ zkper-rand = { path = "zkper-rand" }
 zkper-integer = { path = "zkper-integer" }
 zkper-base = { path = "zkper-base" }
 zkper-curves = { path = "zkper-curves" }
+zkper-modular = { path = "zkper-modular" }
 
 anyhow = { version = "1.0.89", features = ["backtrace"] }
 thiserror = "1.0.64"

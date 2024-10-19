@@ -1,8 +1,11 @@
-use std::ops::{Add, Sub};
+use std::{
+    fmt::Debug,
+    ops::{Add, Sub},
+};
 use zkper_integer::{traits::ZkperIntegerTrait, ZkperInteger};
 
 // Define a trait for ZkperPrime
-pub trait ZkperPrimeTrait<T: ZkperIntegerTrait>: Sized + Add + Sub {
+pub trait ZkperPrimeTrait<T: ZkperIntegerTrait>: Sized + Add + Sub + Clone + Debug {
     fn value() -> ZkperInteger<T>;
 
     fn reduce(a: &ZkperInteger<T>) -> ZkperInteger<T> {

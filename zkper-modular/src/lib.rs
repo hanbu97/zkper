@@ -8,6 +8,7 @@ pub mod implementions;
 pub mod prime;
 pub mod traits;
 
+#[derive(Debug, Clone)]
 pub struct ZkperModularInteger<T: ZkperIntegerTrait, P: ZkperPrimeTrait<T>> {
     pub value: ZkperInteger<T>,
     _prime: PhantomData<P>,

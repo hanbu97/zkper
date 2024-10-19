@@ -105,6 +105,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "groth16"
+version = "0.1.0"
+dependencies = [
+ "zkper-base",
+ "zkper-curves",
+ "zkper-integer",
+ "zkper-rand",
+]
+
+[[package]]
 name = "hamming"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -530,6 +540,13 @@ dependencies = [
 [[package]]
 name = "zkper-finite-field"
 version = "0.1.0"
+dependencies = [
+ "zkper-base",
+ "zkper-curves",
+ "zkper-integer",
+ "zkper-modular",
+ "zkper-rand",
+]
 
 [[package]]
 name = "zkper-groth16"
@@ -573,6 +590,10 @@ dependencies = [
  "rand_chacha",
  "rug",
 ]
+
+[[package]]
+name = "zkper-snark"
+version = "0.1.0"
 
 [[package]]
 name = "zkper-snarks"
